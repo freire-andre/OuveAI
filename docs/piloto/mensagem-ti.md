@@ -13,14 +13,14 @@ Quero fazer um piloto de ~2 semanas com ‹3–5› colegas usando o **OuveAI**,
 **O que é**
 - App desktop para Windows 10 2004+ (x64), feito com Tauri (Rust + WebView2).
 - Reconhecimento de fala offline com o modelo Parakeet (NVIDIA, CC-BY-4.0) via sherpa-onnx/ONNX Runtime, rodando na CPU.
-- Código-fonte: ‹https://github.com/freire-andre/OuveAI›.
+- Código-fonte (público): https://github.com/freire-andre/OuveAI
 
 **Instalação**
 - Instalador NSIS **por usuário**, sem administrador, em `%LOCALAPPDATA%\OuveAI`.
 - Dados em `%LOCALAPPDATA%\br.com.ouveai`: banco SQLite, modelo (~640 MB), áudio opcional e logs. Nada vai para o perfil Roaming.
 - O instalador **não é assinado** digitalmente. Arquivo e hash desta versão:
-  - `OuveAI_‹versão›_x64-setup.exe` (‹tamanho› MB)
-  - SHA-256: `‹hash›`
+  - `OuveAI_0.9.0_x64-setup.exe` (9,1 MB): https://github.com/freire-andre/OuveAI/releases/tag/v0.9.0
+  - SHA-256: `27e7ec51a8a5d8f88c9af17c32cd9f284b38aa0c6ec542a91c866e4634cf92db`
 
 **Comportamentos que o EDR pode sinalizar (todos esperados)**
 
