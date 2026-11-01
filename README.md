@@ -13,7 +13,20 @@ O áudio não sai do seu computador: sem nuvem, sem conta, sem telemetria.</p>
   <img alt="Rust" src="https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white">
   <img alt="Svelte 5" src="https://img.shields.io/badge/Svelte-5-FF3E00?logo=svelte&logoColor=white">
   <img alt="Parakeet TDT v3" src="https://img.shields.io/badge/ASR-Parakeet%20TDT%20v3-1F6FEB">
-  <img alt="Status" src="https://img.shields.io/badge/status-em%20desenvolvimento-F2A600">
+  <img alt="Status" src="https://img.shields.io/badge/status-piloto-F2A600">
+</p>
+
+<p>
+  <a href="https://github.com/freire-andre/OuveAI/releases/latest">
+    <img alt="Baixar para Windows" src="https://img.shields.io/badge/Baixar_para_Windows-instalador_.exe-2EA44F?style=for-the-badge&logo=windows&logoColor=white" height="44">
+  </a>
+  <br>
+  <a href="https://github.com/freire-andre/OuveAI/releases/latest">
+    <img alt="Última versão" src="https://img.shields.io/github/v/release/freire-andre/OuveAI?label=vers%C3%A3o&color=2EA44F">
+  </a>
+  <img alt="Downloads" src="https://img.shields.io/github/downloads/freire-andre/OuveAI/total?label=downloads&color=555">
+  <br>
+  <sub>Windows 10 (2004+) ou 11 · 64 bits · sem administrador · <a href="docs/guia-colegas.md">guia rápido</a></sub>
 </p>
 
 <p>
@@ -123,7 +136,9 @@ O instalador não exige o VC++ Redistributable: o motor de reconhecimento vai li
 
 ## 🚀 Como usar
 
-1. Rode o instalador `OuveAI_x.y.z_x64-setup.exe`.
+1. Baixe o instalador `OuveAI_x.y.z_x64-setup.exe` na [**página da última versão**](https://github.com/freire-andre/OuveAI/releases/latest) e dê dois cliques.
+   - Se aparecer "O Windows protegeu o computador", clique em **Mais informações › Executar assim mesmo**. O instalador ainda não tem assinatura digital.
+   - Para conferir o arquivo, compare `Get-FileHash .\OuveAI_*_x64-setup.exe` com o `.sha256` publicado junto.
 2. No primeiro uso, o assistente:
    - baixa o modelo de fala (ou importa de um arquivo, se a rede da empresa bloquear);
    - testa o microfone e o som do computador;
