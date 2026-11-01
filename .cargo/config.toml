@@ -1,0 +1,4 @@
+# ADR-003: CRT estático no Windows. A lib estática do sherpa-onnx usa o CRT estático;
+# sem isto o link mistura CRTs (LNK4098) e o exe passa a exigir o VC++ Redist (VCRUNTIME140.dll).
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

@@ -1,0 +1,23 @@
+[package]
+name = "s5-tauri"
+version = "0.0.1"
+edition = "2024"
+
+# Spike S5: fora do workspace principal.
+[workspace]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["custom-protocol"] }
+windows-sys = { version = "0.61", features = ["Win32_System_Threading", "Win32_System_SystemInformation", "Win32_Foundation"] }
+
+sherpa-onnx = { version = "2.0.1", optional = true }
+
+[features]
+sherpa = ["dep:sherpa-onnx"]
+
+[profile.release]
+debug = "line-tables-only"
+

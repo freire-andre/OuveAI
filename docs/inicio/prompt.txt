@@ -1,0 +1,76 @@
+Quero instalar no meu computador um transcritor local e gratuito que devolva texto corrido, legenda .srt e o tempo de início e fim de cada palavra, para legendar vídeo com a fala sincronizada. As falas são em português do Brasil (pt-BR). Responda sempre em pt-BR.
+
+<regras>
+- Peça minha confirmação antes de cada instalação e de cada download (diga o que é, de onde vem e o tamanho).
+- Pare ao fim de cada PARTE com um resumo ✅ do que foi feito e espere meu "ok" antes de seguir.
+- Nada de instalação global nem como administrador, a não ser que eu autorize.
+- Se algo falhar, mostre o erro e proponha a correção. Nunca troque de biblioteca, modelo ou abordagem sem me perguntar.
+- O TEMPO DE CADA PALAVRA VEM SEMPRE DE MEDIÇÃO: dos timestamps/durações do modelo ou da análise do próprio áudio pelo FFmpeg. Nunca estime tempo dividindo frase, interpolando ou ajustando à mão.
+</regras>
+
+PARTE 1, DIAGNÓSTICO
+Informe: sistema operacional, processador (modelo e número de núcleos) e espaço livre em disco. Preciso de 2 GB livres para o modelo Parakeet (mais 3 GB se eu quiser a Parte 4). Verifique se há Node.js LTS recente e FFmpeg no PATH. Se faltar algo, mostre como instalar no meu sistema e espere. Pergunte em que pasta devo criar o projeto "transcritor".
+
+PARTE 2, INSTALAÇÃO
+1. Na pasta escolhida, crie "transcritor" e rode: npm install sherpa-onnx-node
+   Depois, leia no README do pacote a nota específica para o meu sistema sobre localizar o binário nativo (no Windows, a pasta node_modules/sherpa-onnx-win-x64 precisa estar no PATH do processo ou as DLLs precisam ser copiadas). Aplique isso no script antes do primeiro teste.
+2. Baixe o modelo do release oficial e extraia numa subpasta "models":
+   https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2 (~640 MB)
+   Confira se o tamanho baixado bate e apague o .tar.bz2 depois de extrair.
+3. ANTES de escrever código, leia o README do sherpa-onnx-node instalado e o exemplo oficial de reconhecimento offline com NeMo transducer (pasta nodejs-addon-examples do repositório sherpa-onnx no GitHub). Se não tiver acesso à web, me peça para colar o exemplo. Use exatamente os nomes de campos da versão instalada. Não invente API. Me diga quais campos o resultado traz (tokens, timestamps e, se existir, durations) e como o marcador de palavra aparece nos tokens (▁ ou espaço).
+4. Escreva transcribe.js, que:
+   a) converte qualquer áudio ou vídeo para WAV 16 kHz, mono, PCM 16-bit com FFmpeg (arquivo temporário, apagado no fim);
+   b) roda o reconhecedor offline do sherpa-onnx (modelo nemo_transducer, CPU, threads = min(4, núcleos));
+   c) monta as palavras pelas REGRAS DE TEMPO abaixo;
+   d) salva, ao lado do arquivo de entrada e com o mesmo nome-base, em UTF-8:
+      - .json: {"source": "...", "duration": s, "words": [{"word": "...", "start": s, "end": s}], "pauses": [{"start": s, "end": s}]}, segundos com 3 casas;
+      - .txt e .srt, gerados a partir do .json.
+   Opções:
+      node transcribe.js arquivo.mp4                 → gera .json, .txt e .srt
+      node transcribe.js arquivo.mp4 --check         → gera só arquivo.check.json (não toca no .srt existente)
+      node transcribe.js --from-json arquivo.json    → regenera .txt e .srt a partir do .json (usado após corrigir texto)
+
+REGRAS DE TEMPO POR PALAVRA
+- O resultado traz tokens (pedaços de palavra) e timestamps (segundo de início de cada token).
+- Token que começa com ▁ (ou com espaço, conforme a versão) abre palavra nova. Token sem marcador (inclusive pontuação) gruda na palavra anterior. O primeiro token do arquivo sempre abre palavra.
+- Início da palavra = timestamp do primeiro token.
+- Fim da palavra:
+  • se o resultado trouxer durations por token: início do último token + sua duração;
+  • se não trouxer: início da palavra seguinte, mas recuado para o início de qualquer silêncio detectado entre as duas; limitado a início + 1,5 s; na última palavra, limitado à duração do áudio.
+- Pausas: rode o silencedetect do FFmpeg (-35 dB, mínimo 0,3 s) e grave os intervalos em "pauses". Uma pausa entre duas palavras é o silêncio medido entre elas, nunca a diferença entre os inícios.
+
+SEGMENTAÇÃO DA LEGENDA (função única, usada aqui e na Parte 5)
+Deixe estes parâmetros num bloco de configuração no topo do script:
+  MAX_CHARS = 36, PAUSA_QUEBRA = 0.45, VIRGULA_MIN_CHARS = 20, SAIDA_APOS_FIM = 0.1, MIN_DURACAO = 1.0, INTERVALO_MIN = 0.08
+- Quebre em pontuação final (. ? !), em vírgula se o bloco já tiver VIRGULA_MIN_CHARS caracteres, e em qualquer pausa ≥ PAUSA_QUEBRA entre palavras.
+- Máximo de MAX_CHARS caracteres por bloco, em uma linha. Se passar, quebre na palavra anterior.
+- O bloco entra no início da primeira palavra e sai SAIDA_APOS_FIM depois do fim da última. Se ficar com menos de MIN_DURACAO, estenda o fim até completar. Em todo caso, o fim respeita INTERVALO_MIN antes do início do bloco seguinte.
+- Tempo no formato HH:MM:SS,mmm.
+
+ÁUDIO LONGO
+Acima de 10 minutos, corte em pedaços de até 10 minutos, sempre num silêncio detectado pelo silencedetect. Se não houver silêncio entre 9:00 e 10:30 do pedaço, corte no ponto de menor volume nessa janela e me avise. Some o início de cada pedaço aos tempos das palavras e das pausas dele.
+
+PARTE 3, TESTE
+1. Pergunte o caminho de um vídeo meu de 1 a 2 minutos e transcreva.
+2. Informe separadamente: tempo de carga do modelo, tempo de transcrição e fator de tempo real (duração do áudio ÷ tempo de transcrição).
+3. Ensine a abrir o vídeo com a legenda num player do meu sistema (ex.: VLC no Windows/Linux, IINA ou VLC no macOS; o .srt com o mesmo nome do vídeo é carregado sozinho).
+4. Liste os trechos que parecem errados, principalmente nomes próprios, termos técnicos e palavras com grafia de português europeu, com o tempo de cada um. Diga quantos erros por minuto encontrou. Se forem mais de 3 por minuto, recomende a Parte 4.
+5. Para corrigir, edite só o texto das palavras no .json (nunca start/end) e rode --from-json para regenerar .txt e .srt.
+PRONTO quando: os três arquivos foram gerados, a legenda aparece no player junto com a fala e o fator de tempo real foi informado.
+
+PARTE 4, OPCIONAL (só se eu pedir)
+Para texto mais exato em pt-BR, quero comparar com o Whisper large-v3 (~3 GB, mais lento), com o idioma fixado em "pt". Antes de instalar, proponha a forma (preferindo reaproveitar sherpa-onnx e FFmpeg, sem instalar Python se não for preciso) e espere minha escolha. O Whisper processa no máximo 30 s por vez: use cortes em silêncio. Rode os dois no mesmo áudio, alinhe as duas listas de palavras por sequência (como um diff, não por posição) e mostre só os trechos em que discordam, com o tempo. O resultado final fica com o texto que eu escolher e os tempos do Parakeet.
+
+PARTE 5, LEGENDA DE VÍDEO EDITADO
+1. Transcreva cada arquivo bruto uma vez, antes de editar (e corrija o texto como na Parte 3).
+2. Os cortes ficam em edl.json, com tempos em segundos e sem mudança de velocidade:
+   [{"file": "bruto1.mp4", "in": 12.40, "out": 25.10, "position": 0.00}, ...]
+   O script usa o .json de mesmo nome-base do arquivo (bruto1.json) e falha com mensagem clara se ele não existir.
+3. Escreva edl-subs.js, que:
+   - valida o edl.json antes de tudo: out > in e nenhuma sobreposição no vídeo final (erro). Intervalos entre cortes são permitidos (títulos, transições) e apenas listados uma vez para eu conferir;
+   - lê os .json dos brutos e gera o .srt do vídeo final;
+   - só entra a palavra cujo início está dentro de [in, out) do corte;
+   - tempo final = tempo no bruto − in + position (início e fim); fim que passa de "out" é cortado em "out";
+   - usa a mesma função de segmentação da Parte 2, e nenhum bloco atravessa um corte.
+4. Verificação: rode transcribe.js no vídeo final exportado com --check. Alinhe as palavras da verificação com as da legenda por sequência (como um diff, não por posição), usando texto normalizado (minúsculas, sem pontuação nem acento). Só pares casados entram na conta. Informe o desvio mediano e o máximo do início das palavras e quantas palavras ficaram sem par (minha referência: 0,12 s mediano).
+5. Liste todo trecho com desvio > 0,3 s e diga a causa provável (ex.: in ou position errados no edl.json). Proponha a correção na origem e espere minha aprovação. Nunca empurre tempos à mão.

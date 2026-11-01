@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Janelas do OuveAI",
+  "windows": ["main", "mini", "wizard"],
+  "permissions": ["core:default", "core:window:allow-start-dragging", "log:default", "dialog:allow-open", "dialog:allow-save", "opener:default"]
+}

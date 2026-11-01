@@ -1,0 +1,2 @@
+Electron ou Tauri
+Escolha a que se adequar melhor com o projeto onde o consumo de memoria seja baixa e a inicialização seja rápida.

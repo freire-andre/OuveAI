@@ -1,0 +1,11 @@
+[workspace]
+resolver = "3"
+members = ["crates/ouveai-core", "crates/ouveai-audio", "crates/ouveai-cli", "src-tauri"]
+
+[workspace.package]
+edition = "2024"
+version = "0.9.0"
+license = "UNLICENSED"
+
+[profile.release]
+debug = "line-tables-only"

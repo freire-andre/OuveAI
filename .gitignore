@@ -1,0 +1,31 @@
+# Build
+target/
+node_modules/
+dist/
+**/gen/schemas/
+
+# Dados e artefatos pesados (nunca versionar)
+models/
+recordings/
+*.onnx
+*.tar.bz2
+*.wav
+*.part
+
+# Ambiente
+.env
+*.log
+.vscode/
+.idea/
+
+# Anotações locais (fora do repositório)
+docs/_*/
+
+# Áudios e transcrições de teste (voz e conteúdo pessoais)
+testdata/
+
+# Exceção: Silero VAD (MIT, 643 KB) embutido no app (Fase 2)
+!crates/ouveai-core/assets/silero_vad.onnx
+
+# Áudios de teste do usuário (fora do repositório)
+teste_audio/

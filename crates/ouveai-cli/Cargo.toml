@@ -1,0 +1,14 @@
+[package]
+name = "ouveai-cli"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "ouveai-cli"
+path = "src/main.rs"
+
+[dependencies]
+ouveai-core = { path = "../ouveai-core" }
+ouveai-audio = { path = "../ouveai-audio" }
+sherpa-onnx = { version = "2.0.1", default-features = false }
