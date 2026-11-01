@@ -15,7 +15,7 @@ Data: 01/11/2026 · versão **0.9.0** · decisões D4 e D5 em [ADR-005](../adr/0
 - **Rede (Configurações):** o texto agora lista exatamente o que usa a internet.
 - **`scripts/release.ps1`** (D4): roda os testes e o `svelte-check`, gera o instalador e grava o `.sha256`. Não publica nada.
 - **Documentos do piloto**
-  - [Guia de 1 página para colegas](../guia-colegas.md)
+  - [Guia rápido de 1 página](../guia.md)
   - [Mensagem para o TI](../piloto/mensagem-ti.md): comportamentos que o EDR pode sinalizar e a lista fechada de destinos de rede
   - [Formulário pós-reunião, triagem e critérios de saída](../piloto/formulario.md)
 
@@ -47,7 +47,7 @@ Na primeira medição, a RAM "só na bandeja" deu 103 MB, mas eram os processos 
 
 ## Pendente antes do piloto
 
-1. **O repositório no GitHub é privado.** Assim, os colegas não conseguem baixar as versões e o "Verificar atualização" sempre responde "Nenhuma versão publicada ainda". Falta você escolher onde publicar.
+1. ~~O repositório no GitHub era privado.~~ Resolvido em 01/11/2026: o repositório virou público e a release v0.9.0 foi publicada.
 2. Mandar a mensagem ao TI (D4) e esperar o retorno.
 3. Medir a CPU numa chamada real de 10 min.
-4. Criar a primeira release (instalador e `.sha256`) e chamar 3 a 5 colegas.
+4. Convidar 3 a 5 pessoas para o piloto.

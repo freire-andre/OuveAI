@@ -26,7 +26,7 @@ O áudio não sai do seu computador: sem nuvem, sem conta, sem telemetria.</p>
   </a>
   <img alt="Downloads" src="https://img.shields.io/github/downloads/freire-andre/OuveAI/total?label=downloads&color=555">
   <br>
-  <sub>Windows 10 (2004+) ou 11 · 64 bits · sem administrador · <a href="docs/guia-colegas.md">guia rápido</a></sub>
+  <sub>Windows 10 (2004+) ou 11 · 64 bits · sem administrador · <a href="docs/guia.md">guia rápido</a></sub>
 </p>
 
 <p>
@@ -240,7 +240,7 @@ As decisões técnicas estão em [`docs/adr/`](docs/adr) e o plano completo em [
 | 3 | Transcrição de arquivo, legenda `.srt` e editor | ✅ |
 | 4 | Captura ao vivo, mini janela e sessões | ✅ |
 | 5 | Histórico, busca sem acento, copiar em Markdown, exportar | ✅ |
-| 6 | Instalador final, tela de licenças, diagnóstico, piloto | 🧪 piloto com colegas (0.9.0) |
+| 6 | Instalador final, tela de licenças, diagnóstico, piloto | 🧪 piloto (0.9.0) |
 | 7 | Comparação com Whisper (opcional) | 🔜 |
 | 8 | Legenda de vídeo editado (EDL) | 🔜 |
 

@@ -8,10 +8,10 @@
 
 ## 0. Sumário executivo
 
-O plano original acerta na stack (Tauri v2 + Rust + sherpa-onnx), nas regras de tempo por palavra e na escolha das ideias de produto aproveitadas. Esta revisão mantém essa base. O que muda é principalmente **ordem, riscos e distribuição para os colegas**:
+O plano original acerta na stack (Tauri v2 + Rust + sherpa-onnx), nas regras de tempo por palavra e na escolha das ideias de produto aproveitadas. Esta revisão mantém essa base. O que muda é principalmente **ordem, riscos e distribuição**:
 
-1. **Primeiro sai o app de reunião para os colegas (v1.0).** As Partes 4 (Whisper) e 5 (EDL) continuam no plano, mas vêm depois do piloto. O escopo é o mesmo, só a ordem muda. **(D1)**
-2. **O empacotamento sai do fim e vai para o começo.** Já na Fase 1 existe um instalador mínimo, testado numa máquina limpa (Windows Sandbox). O maior risco de "não abre no PC do colega" é DLL/runtime C++, e no OuveAI esse erro derruba o processo antes de qualquer mensagem nossa aparecer.
+1. **Primeiro sai o app de reunião (v1.0).** As Partes 4 (Whisper) e 5 (EDL) continuam no plano, mas vêm depois do piloto. O escopo é o mesmo, só a ordem muda. **(D1)**
+2. **O empacotamento sai do fim e vai para o começo.** Já na Fase 1 existe um instalador mínimo, testado numa máquina limpa (Windows Sandbox). O maior risco de "não abre no PC de outra pessoa" é DLL/runtime C++, e no OuveAI esse erro derruba o processo antes de qualquer mensagem nossa aparecer.
 3. **Os dados vão para `%LOCALAPPDATA%`, não para `%APPDATA%`.** O `%APPDATA%` é o perfil Roaming: em empresa, 640 MB de modelo mais os WAVs deixam o logon lento e estouram a cota.
 4. **Captura de OUTROS confiável no Teams, no Meet e no Zoom.** O app capta os dois dispositivos padrão do Windows (multimídia e comunicação), acompanha a troca de dispositivo (inclusive a troca de perfil do Bluetooth) e usa relógio QPC, porque o loopback para de mandar pacotes quando nada está tocando. A mini ganha um medidor de sinal por canal e um aviso quando OUTROS fica mudo. A captura por aplicativo (Windows 11) entra como opção avançada. **(D7)**
 5. **Download que funciona na rede da empresa.** Usa os certificados do Windows e o proxy do sistema, retoma downloads interrompidos e, principalmente, oferece **"baixar pelo navegador / importar arquivo"**, que passa por qualquer proxy.
@@ -42,8 +42,8 @@ O plano original acerta na stack (Tauri v2 + Rust + sherpa-onnx), nas regras de 
 | L4 | O loopback WASAPI não manda pacotes enquanto nada toca | Medir o tempo contando amostras encolhe a linha do tempo de OUTROS e desalinha EU e OUTROS | Relógio da sessão pelo QPC de cada pacote, com silêncio preenchendo as lacunas. Validar no spike |
 | L5 | Atalho global `Ctrl+Shift+O` | No Teams é liga/desliga câmera, e o atalho global "rouba" a tecla do Teams | Novos padrões (Fase 1) |
 | L6 | Meta de RAM < 80 MB com duas WebViews | Cada janela tem seu próprio processo de renderização do WebView2 | Janelas criadas sob demanda e metas calibradas na Fase 0 (seção 4) |
-| L7 | Entregar o app aos colegas | Um exe sem assinatura cai no SmartScreen, e o antivírus/EDR da empresa pode bloquear um app que capta áudio, registra atalhos globais e se esconde da captura de tela | Falar com o TI antes do piloto, publicar o SHA-256 do instalador e assinar se o TI exigir **(D4)** |
-| L8 | Suporte | Sem telemetria (o que está certo), não há como investigar um problema no PC do colega | "Exportar diagnóstico" e logs sem conteúdo |
+| L7 | Entregar o app a outras pessoas | Um exe sem assinatura cai no SmartScreen, e o antivírus/EDR da empresa pode bloquear um app que capta áudio, registra atalhos globais e se esconde da captura de tela | Falar com o TI antes do piloto, publicar o SHA-256 do instalador e assinar se o TI exigir **(D4)** |
+| L8 | Suporte | Sem telemetria (o que está certo), não há como investigar um problema no PC de quem usa | "Exportar diagnóstico" e logs sem conteúdo |
 | L9 | `threads = min(4, núcleos)` também ao vivo | Disputa CPU com o Teams com vídeo e faz o áudio engasgar | Ao vivo, 2 threads (configurável) e threads de captura com MMCSS. Arquivo continua com `min(4, núcleos)` |
 | L10 | A gravação começa com o modelo descarregado | A carga leva segundos, e o começo da fala se perderia | Captura e VAD começam na hora, e os segmentos esperam na fila até o modelo carregar |
 | L11 | O ao vivo só pode ser testado numa reunião real | Lento e impossível de repetir igual | Fonte de áudio "replay" (dois WAVs) no mesmo pipeline e comando `ouveai replay` |
@@ -57,7 +57,7 @@ O plano original acerta na stack (Tauri v2 + Rust + sherpa-onnx), nas regras de 
 | L19 | Posição salva da mini | Se o monitor foi desconectado, a janela abre fora da tela | Validar a posição contra os monitores atuais. O atalho de resgate centraliza a janela |
 | L20 | Clicar na mini | Rouba o foco do Teams, e os atalhos dele (mudo etc.) param de responder | Avaliar janela que não pega foco (`WS_EX_NOACTIVATE`) na Fase 1 |
 | L21 | OUTROS é uma voz só | Separar quem falou (diarização) é o próximo pedido natural | Coluna `speaker_label` já no schema (custo zero). A diarização fica no backlog |
-| L22 | Apagar dados | Exigência de LGPD e confiança dos colegas | "Excluir sessão", "Excluir tudo" e um desinstalador que pergunta se apaga os dados |
+| L22 | Apagar dados | Exigência de LGPD e confiança de quem usa | "Excluir sessão", "Excluir tudo" e um desinstalador que pergunta se apaga os dados |
 | L23 | Colunas `start`/`end` no SQLite | `END` é palavra reservada do SQL | Renomear para `start_s`/`end_s` |
 
 ### 1.3 oportunidade.md: veredito por item
@@ -133,7 +133,7 @@ O plano original acerta na stack (Tauri v2 + Rust + sherpa-onnx), nas regras de 
 
 **Públicos**
 - **Usuário principal (você):** técnico, usa o app em reuniões e para legendar vídeo editado, e usa a CLI.
-- **Colegas:** não técnicos, em notebook corporativo (Windows 10 22H2 ou 11, 8–16 GB de RAM, proxy, antivírus/EDR, sem admin). Querem transcrever reuniões de Teams, Meet e Zoom e copiar o texto.
+- **Usuários do piloto:** não técnicos, em notebook corporativo (Windows 10 22H2 ou 11, 8–16 GB de RAM, proxy, antivírus/EDR, sem admin). Querem transcrever reuniões de Teams, Meet e Zoom e copiar o texto.
 
 **Requisitos mínimos propostos (D6):** Windows 10 2004 (build 19041) ou mais novo, x64, 8 GB de RAM, 4 núcleos, 2 GB livres em disco. ARM64 fica de fora da v1.0 (roda por emulação, mais devagar).
 
@@ -144,8 +144,8 @@ O plano original acerta na stack (Tauri v2 + Rust + sherpa-onnx), nas regras de 
 | Release | Fases | Para quem | Conteúdo |
 |---|---|---|---|
 | **v0.1 "Arquivo"** | 0–3 | Você | CLI `transcribe` (Partes 2 e 3) + importar arquivo na UI |
-| **v0.9 "Piloto"** | 4–6 | 3–5 colegas | Reunião ao vivo EU/OUTROS, histórico, busca, exportar/copiar, marcadores, stealth, instalador |
-| **v1.0 "Reunião"** | saída do piloto | Colegas | Correções do piloto |
+| **v0.9 "Piloto"** | 4–6 | 3–5 pessoas | Reunião ao vivo EU/OUTROS, histórico, busca, exportar/copiar, marcadores, stealth, instalador |
+| **v1.0 "Reunião"** | saída do piloto | Público | Correções do piloto |
 | **v1.1 "Vídeo"** | 7–8 | Você | Parte 4 (Whisper, sob pedido) e Parte 5 (EDL) |
 
 **Backlog (depois da v1.0, sem compromisso):** diarização dos OUTROS ("OUTROS 1, 2…", pelo sherpa-onnx, exige áudio salvo); dicionário de correções do usuário e hotwords (se o TDT suportar, verificar na Fase 0); AEC de verdade; texto parcial ao vivo enquanto a pessoa ainda fala; banco criptografado (DPAPI/SQLCipher); áudio em FLAC; ARM64 nativo; macOS; atualização automática assinada.
@@ -216,7 +216,7 @@ O plano original acerta na stack (Tauri v2 + Rust + sherpa-onnx), nas regras de 
 ```
 
 ### 6.1 Por que o `live/` foi para o core
-O pipeline ao vivo (VAD → ASR → palavras → eco → banco) não depende de WASAPI nem do Tauri: ele recebe amostras de um `AudioSource`. Com isso, `cargo test` roda o pipeline inteiro alimentado por dois WAVs (replay), e a CLI ganha `ouveai replay` para reproduzir um problema com o áudio salvo de um colega. A captura do Windows fica isolada em `ouveai-audio`, o que também prepara o macOS.
+O pipeline ao vivo (VAD → ASR → palavras → eco → banco) não depende de WASAPI nem do Tauri: ele recebe amostras de um `AudioSource`. Com isso, `cargo test` roda o pipeline inteiro alimentado por dois WAVs (replay), e a CLI ganha `ouveai replay` para reproduzir um problema com o áudio salvo de um usuário. A captura do Windows fica isolada em `ouveai-audio`, o que também prepara o macOS.
 
 ### 6.2 Janelas sob demanda
 - **Na bandeja:** nenhuma WebView aberta, então a RAM é mínima.
@@ -483,7 +483,7 @@ Se não, parar e decidir com você.
   - cada fonte abre na sua própria thread, e EU nunca espera por OUTROS;
   - se uma fonte não abrir em ~2 s, a mini mostra "aguardando permissão (antivírus?)" no canal;
   - se não abrir em ~60 s, avisa e oferece tentar de novo;
-  - o guia dos colegas explica o aviso do antivírus.
+  - o guia rápido explica o aviso do antivírus.
 - O mic só abre quando a gravação começa.
 - **Qual mic é o EU (achado do S3):** o "dispositivo de comunicação padrão" pode não ser o mic onde a pessoa fala. Nesta máquina ele é a webcam C920, e o usuário fala no USB PnP, que é o "dispositivo padrão". Regras:
   - o modo Automático usa o **dispositivo padrão** (papel Console);
@@ -561,16 +561,16 @@ Se não, parar e decidir com você.
 
 ---
 
-### Fase 6: Distribuição e piloto com colegas · M (era a Fase 8, antecipada)
+### Fase 6: Distribuição e piloto · M (era a Fase 8, antecipada)
 
-> **Parte técnica feita em 01/11/2026** ([resultado](fase6/resultado.md), [ADR-005](adr/005-distribuicao-e-atualizacao.md)): instalador 0.9.0, Sobre com licenças, diagnóstico e verificação manual de atualização, guia dos colegas, mensagem ao TI e formulário. Falta o piloto em si, que depende de onde publicar (o repositório é privado) e do retorno do TI.
+> **Parte técnica feita em 01/11/2026** ([resultado](fase6/resultado.md), [ADR-005](adr/005-distribuicao-e-atualizacao.md)): instalador 0.9.0, Sobre com licenças, diagnóstico e verificação manual de atualização, guia rápido, mensagem ao TI e formulário. Falta o piloto em si, que depende do retorno do TI. O repositório virou público e a release v0.9.0 saiu em 01/11/2026.
 
 **Instalador e app**
 - NSIS por usuário, com a estratégia do ADR-003.
 - WebView2 em modo bootstrapper (padrão, e a maioria das máquinas já tem). Avaliar embutir o bootstrapper se a rede for restrita.
 - Checagem de SO mínimo.
 - O desinstalador pergunta se apaga os dados.
-- A CLI não vai no instalador dos colegas.
+- A CLI não vai no instalador.
 
 **Tela "Sobre":** versão, licenças e atribuições (Parakeet CC-BY-4.0, sherpa-onnx Apache-2.0, onnxruntime MIT, Silero VAD MIT, FFmpeg LGPL/GPL conforme a build).
 
@@ -580,12 +580,12 @@ Se não, parar e decidir com você.
 - Atualizações conforme **(D5)**.
 - Distribuição conforme **(D4)**: falar com o TI antes (EDR, SmartScreen) e publicar o SHA-256 do instalador.
 
-**Documentação:** guia de 1 página para colegas (instalar, baixar ou importar o modelo, primeira reunião, atalhos, fone e eco, privacidade) e README em pt-BR.
+**Documentação:** guia rápido de 1 página (instalar, baixar ou importar o modelo, primeira reunião, atalhos, fone e eco, privacidade) e README em pt-BR.
 
 **Medições finais:** todas as da seção 4.
 
 **Piloto**
-- 3–5 colegas, ~2 semanas, em máquinas corporativas reais.
+- 3–5 pessoas, ~2 semanas, em máquinas corporativas reais.
 - Formulário curto depois de cada reunião e triagem semanal.
 - A Fase 7 pode começar durante o piloto, se você quiser.
 
@@ -697,7 +697,7 @@ settings(key TEXT PRIMARY KEY, value TEXT)   -- valor em JSON
 | # | Risco | Prob. | Impacto | Mitigação | Fase |
 |---|---|:---:|:---:|---|:---:|
 | R1 | O crate Rust do sherpa-onnx não expõe timestamps | Baixa | Alto | Confirmar em S1. Plano B: C API via FFI, decidido com você | 0 |
-| R2 | App não abre na máquina do colega por falta de DLL/runtime C++ | Média | Alto | ADR-003 + Sandbox desde a F1 | 0, 1 |
+| R2 | App não abre na máquina de quem instala por falta de DLL/runtime C++ | Média | Alto | ADR-003 + Sandbox desde a F1 | 0, 1 |
 | R3 | A rede corporativa bloqueia o download (proxy, TLS, GitHub) | Alta | Alto | Certificados do SO, proxy, retomada, **navegador/arquivo local** | 0, 2 |
 | R4 | OUTROS não é captado (papel errado, Bluetooth HFP) | Alta | Alto | Dois papéis, acompanhar trocas, medidor + dica, por aplicativo (D7) | 0, 4 |
 | R5 | Lacunas do loopback desalinham a linha do tempo | Alta | Médio | Relógio QPC + preenchimento | 0, 4 |
@@ -709,7 +709,7 @@ settings(key TEXT PRIMARY KEY, value TEXT)   -- valor em JSON
 | R11 | Proteção de conteúdo ignorada por gravador em nível de driver | Baixa | Médio | Aviso na UI | 1 |
 | R12 | Eco sem fone | Alta | Médio | Marcar em vez de apagar, recomendar fone, AEC no backlog | 4 |
 | R13 | Parakeet com grafia de pt-PT e nomes próprios errados | Alta | Médio | Editor de palavras, candidatos no relatório, Parte 4, dicionário no backlog | 3, 7 |
-| R14 | Partes 4/5 atrasam a entrega aos colegas | Alta (era) | Médio | Reordenação (D1) | — |
+| R14 | Partes 4/5 atrasam a entrega da v1.0 | Alta (era) | Médio | Reordenação (D1) | — |
 | R15 | Meta de RAM irreal com duas WebViews | Alta (era) | Baixo | Janelas sob demanda e metas calibradas em S5 | 0, 1 |
 | R16 | Falha nativa do onnxruntime derruba o app na reunião | Baixa | Alto | Gravação por segmento, órfãs, gatilho para processo trabalhador (6.5) | 4, 6 |
 
@@ -722,7 +722,7 @@ settings(key TEXT PRIMARY KEY, value TEXT)   -- valor em JSON
 | **D1** | Entregar a v1.0 de reunião (com piloto) **antes** das Partes 4 e 5? O escopo continua o mesmo, só a ordem muda | **Sim** |
 | **D2** | Áudio da reunião: padrão **"não salvar"**, com opções "manter 7 dias", "30 dias" e "sempre" | **Não salvar por padrão**: menos disco, menos dado pessoal (voz). Sem áudio, não dá para clicar e ouvir nem usar a Parte 4 em reunião |
 | **D3** | Atalhos padrão `Ctrl+Alt+Shift+O` (mini), `+R` (gravar), `+M` (marcar) | **Sim**, configuráveis |
-| **D4** | Distribuição aos colegas: falar com o TI antes do piloto? Assinar o instalador? | **Falar com o TI antes.** Assinar só se o TI exigir ou se o SmartScreen/EDR bloquear no piloto (tem custo anual). Sem assinatura, publicar o SHA-256. **✅ Aceita em 01/11/2026 (ADR-005)** |
+| **D4** | Distribuição do piloto: falar com o TI antes do piloto? Assinar o instalador? | **Falar com o TI antes.** Assinar só se o TI exigir ou se o SmartScreen/EDR bloquear no piloto (tem custo anual). Sem assinatura, publicar o SHA-256. **✅ Aceita em 01/11/2026 (ADR-005)** |
 | **D5** | Atualizações na v1.0 | **Sem updater automático.** Botão manual "verificar atualização" (opt-in, única chamada de rede extra) ou só instruções no guia. **✅ Botão manual, em 01/11/2026 (ADR-005)** |
 | **D6** | Requisitos mínimos: Windows 10 2004+ x64, 8 GB de RAM; ARM64 fora | **Sim** |
 | **D7** | Modo "Por aplicativo" (loopback por processo, Win11) na v1.0 | **Só se o spike S3(e) for simples.** Se não, fica para a v1.1, e o modo Automático com dois papéis já cobre os casos principais |

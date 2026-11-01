@@ -24,7 +24,7 @@ Para colar num Google Forms ou Microsoft Forms. As 6 primeiras perguntas são ob
   - **crítico:** perda de texto, app fecha ou não abre, bloqueio do antivírus sem saída;
   - **alto:** OUTROS ou EU não captado sem dica que resolva;
   - **médio** e **baixo:** o resto.
-- Críticos viram correção e uma nova versão. Cada versão nova pede de novo a aprovação do Kaspersky; avisar os colegas.
+- Críticos viram correção e uma nova versão. Cada versão nova pede de novo a aprovação do Kaspersky; avisar os participantes.
 
 ## Critérios de saída (v1.0)
 
