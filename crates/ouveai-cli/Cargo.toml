@@ -12,3 +12,4 @@ path = "src/main.rs"
 ouveai-core = { path = "../ouveai-core" }
 ouveai-audio = { path = "../ouveai-audio" }
 sherpa-onnx = { version = "2.0.1", default-features = false }
+serde_json = "1.0.154"

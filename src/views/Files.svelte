@@ -67,6 +67,7 @@
 
   function phaseLabel(p: Phase): string {
     if (p.kind === "waiting") return "Aguardando a reunião terminar (a gravação tem prioridade)";
+    if (p.kind === "waitingcompare") return "Aguardando a comparação com o Whisper terminar";
     if (p.kind === "loading") return "Carregando o modelo de reconhecimento…";
     const s = p.stage;
     switch (s.stage) {

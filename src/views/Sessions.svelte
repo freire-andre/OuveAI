@@ -2,6 +2,7 @@
   import { onMount, tick } from "svelte";
   import { listen } from "@tauri-apps/api/event";
   import { save } from "@tauri-apps/plugin-dialog";
+  import ComparePanel from "../components/ComparePanel.svelte";
   import { api, FLAG_ECHO, snippetParts, tzOffset, type Hit, type MeetingDetail, type SegmentRow, type SessionRow, type Status } from "../lib/api";
   import { clock, duration, when } from "../lib/format";
 
@@ -11,6 +12,7 @@
   let sessions = $state<SessionRow[] | null>(null);
   let open = $state<number | null>(null);
   let detail = $state<MeetingDetail | null>(null);
+  let panel = $state<ComparePanel>();
   let showEcho = $state(false);
   let confirmDelete = $state(false);
   let renaming = $state<string | null>(null);
@@ -308,6 +310,9 @@
       Hora do relógio
     </label>
     <span class="spacer"></span>
+    {#if detail.audio_dir && !live}
+      <button class="btn" title="Transcreve de novo com o Whisper, a partir do áudio salvo, e mostra só os trechos em que os dois discordam" onclick={() => panel?.start()}>Comparar com o Whisper</button>
+    {/if}
     {#if detail.audio_dir}
       <button class="btn" onclick={() => detail && api.meetingRevealAudio(detail.session.id)}>
         Abrir áudio{detail.audio_expires_at ? ` (até ${when(detail.audio_expires_at)})` : ""}
@@ -328,6 +333,9 @@
   {/if}
   {#if msg}<p class="ok">{msg}</p>{/if}
   {#if err}<p class="err">{err}</p>{/if}
+  {#key detail.session.id}
+    <ComparePanel bind:this={panel} sessionId={detail.session.id} onApplied={() => detail && show(detail.session.id)} />
+  {/key}
 
   {#if items.length === 0}
     <p class="muted">Nenhuma fala transcrita.</p>

@@ -38,6 +38,8 @@ pub struct ModelSpec {
     pub mirror_base: Option<String>,
     /// Vem dentro do exe (não precisa de rede).
     pub embedded: bool,
+    /// Para que serve, quando é opcional (mostrado na tela Modelos).
+    pub note: Option<String>,
 }
 
 impl ModelSpec {
@@ -82,6 +84,7 @@ pub fn parakeet() -> ModelSpec {
             "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/2bda32ec70b097a55adaa07d9a7173915b43cc78".into(),
         ),
         embedded: false,
+        note: None,
     }
 }
 
@@ -96,11 +99,40 @@ pub fn silero() -> ModelSpec {
         archive: None,
         mirror_base: None,
         embedded: true,
+        note: None,
+    }
+}
+
+pub const WHISPER_ID: &str = "whisper-large-v3-turbo-int8";
+
+/// Parte 4 (opcional): Whisper large-v3-turbo em int8. Pacote do release do sherpa-onnx
+/// (que também traz `test_wavs/`, ignorados na extração) e espelho fixado por commit.
+pub fn whisper() -> ModelSpec {
+    ModelSpec {
+        id: WHISPER_ID.into(),
+        name: "Whisper large-v3 turbo (int8)".into(),
+        license: "MIT (OpenAI)".into(),
+        files: vec![
+            f("turbo-encoder.int8.onnx", 674716297, "b02dcdf54f348741e93fe732b67d933c8dcb6735655f710640143081db38878b"),
+            f("turbo-decoder.int8.onnx", 361080764, "20accd02388482eb3a46bd615631adfdc85e1eb2c7db9ea3f02a40ffe6b81547"),
+            f("turbo-tokens.txt", 816730, "b34b360dbb493e781e479794586d661700670d65564001f23024971d1f2fa126"),
+        ],
+        archive: Some(ArchiveSpec {
+            url: "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-turbo.tar.bz2".into(),
+            size: 563790207,
+            sha256: "b11acbbcd660b44a8e0df33724feb5aaa709cf65668f2823d59f656312544f22".into(),
+            root: "sherpa-onnx-whisper-turbo".into(),
+        }),
+        mirror_base: Some(
+            "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-turbo/resolve/2ca6ff69fc878651b770880507669577ac41c2ff".into(),
+        ),
+        embedded: false,
+        note: Some("Opcional. Usado só em \"Comparar com o Whisper\", para conferir trechos difíceis da transcrição.".into()),
     }
 }
 
 pub fn catalog() -> Vec<ModelSpec> {
-    vec![parakeet(), silero()]
+    vec![parakeet(), silero(), whisper()]
 }
 
 pub fn by_id(id: &str) -> Option<ModelSpec> {
@@ -488,6 +520,7 @@ mod tests {
             archive: Some(ArchiveSpec { url: "https://x/fake.tar.bz2".into(), size: 0, sha256: String::new(), root: "fake-root".into() }),
             mirror_base: None,
             embedded: false,
+            note: None,
         }
     }
 

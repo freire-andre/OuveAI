@@ -2,6 +2,7 @@
   import { save } from "@tauri-apps/plugin-dialog";
   import { api, type FileDetail, type Suspect } from "../lib/api";
   import { clock, duration, num, when } from "../lib/format";
+  import ComparePanel from "../components/ComparePanel.svelte";
 
   let { id, onBack }: { id: number; onBack: () => void } = $props();
 
@@ -12,6 +13,7 @@
   let msg = $state<{ ok: boolean; text: string } | null>(null);
   let showSuspects = $state(true);
   let confirmDelete = $state(false);
+  let panel = $state<ComparePanel>();
 
   async function load() {
     try {
@@ -125,11 +127,14 @@
       {#if d.outputs_exist}
         <button class="btn" onclick={() => api.fileReveal(id)}>Abrir pasta</button>
       {/if}
+      <button class="btn" title="Transcreve de novo com o Whisper e mostra só os trechos em que os dois discordam" onclick={() => panel?.start()}>Comparar com o Whisper</button>
       <button class="btn" onclick={() => exportAs("srt")}>Exportar .srt</button>
       <button class="btn" onclick={() => exportAs("txt")}>.txt</button>
       <button class="btn" onclick={() => exportAs("json")}>.json</button>
     </div>
   </header>
+
+  <ComparePanel bind:this={panel} sessionId={id} onApplied={load} />
 
   {#if d.report}
     {@const r = d.report}
@@ -164,7 +169,7 @@
       <label class="toggle"><input type="checkbox" bind:checked={showSuspects} /> destacar</label>
     </div>
     {#if d.suspects_per_min > 3}
-      <p class="hint">Mais de 3 por minuto. Se o texto precisar ficar exato, a comparação com o Whisper (Parte 4) vai ajudar quando estiver disponível.</p>
+      <p class="hint">Mais de 3 por minuto. Se o texto precisar ficar exato, use "Comparar com o Whisper" para ver os trechos em que os dois modelos discordam.</p>
     {/if}
     <p class="hint">Clique numa palavra para corrigir o texto. Os tempos nunca mudam. Enter salva, Esc cancela.</p>
   </section>

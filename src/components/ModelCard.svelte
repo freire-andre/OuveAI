@@ -62,6 +62,7 @@
     <div>
       <h3>{model.name}</h3>
       <p class="meta">{mb(model.size)} · licença {model.license}</p>
+      {#if model.note}<p class="meta note">{model.note}</p>{/if}
     </div>
     <span class="badge {model.state}">{model.embedded && model.state === "ready" ? "Vem com o app" : stateLabel[model.state]}</span>
   </header>
@@ -162,6 +163,10 @@
     margin: 2px 0 0;
     color: var(--text-2);
     font-size: 12.5px;
+  }
+  .note {
+    margin-top: 6px;
+    max-width: 460px;
   }
   .badge {
     flex: none;

@@ -47,6 +47,8 @@ export interface ModelView {
   error: string | null;
   browser_url: string | null;
   has_mirror: boolean;
+  /** Para que serve (modelos opcionais). */
+  note: string | null;
 }
 
 export interface MachineCheck {
@@ -79,7 +81,7 @@ export type Stage =
   | { stage: "recognizing"; chunk: number; chunks: number; done: number; total: number }
   | { stage: "saving" };
 
-export type Phase = { kind: "waiting" } | { kind: "loading" } | { kind: "working"; stage: Stage };
+export type Phase = { kind: "waiting" } | { kind: "waitingcompare" } | { kind: "loading" } | { kind: "working"; stage: Stage };
 
 export interface QueueItem {
   id: number;
@@ -247,6 +249,47 @@ export interface MeetingDetail {
 
 export const FLAG_ECHO = 1;
 
+// ---------- comparar com o Whisper (Parte 4) ----------
+
+/** Um trecho em que o Parakeet e o Whisper discordam (`from`/`to`: palavras da sessão). */
+export interface Divergence {
+  from: number;
+  to: number;
+  start: number;
+  end: number;
+  parakeet: string;
+  whisper: string;
+}
+
+export interface CompareResult {
+  divergences: Divergence[];
+  /** Trechos `[início, fim]` em que o Whisper falhou (descartados). */
+  unreliable: [number, number][];
+  compared: number;
+  skipped: number;
+  whisper_s: number;
+  audio_s: number;
+}
+
+export type CompareView = { session_id: number } & (
+  | { kind: "loading" }
+  | { kind: "converting" }
+  | { kind: "comparing"; done: number; total: number }
+  | { kind: "cancelling" }
+  | { kind: "done"; result: CompareResult }
+  | { kind: "failed"; error: string }
+);
+
+/** Erro de `compareStart` quando o Whisper não está instalado. */
+export const NEED_WHISPER = "whisper";
+export const WHISPER_ID = "whisper-large-v3-turbo-int8";
+
+/** Estado da comparação + atualizações (evento `compare`). */
+export async function watchCompare(cb: (v: CompareView | null) => void): Promise<() => void> {
+  cb(await api.compareState());
+  return listen<CompareView | null>("compare", (e) => cb(e.payload));
+}
+
 /** Resultado da busca. `snippet` traz os termos entre U+0002 e U+0003. */
 export interface Hit {
   session_id: number;
@@ -294,6 +337,11 @@ export const api = {
   hideMini: () => invoke("hide_mini"),
   openMain: (view?: string) => invoke("open_main", { view }),
   models: () => invoke<ModelView[]>("models_list"),
+  compareStart: (id: number) => invoke("compare_start", { id }),
+  compareState: () => invoke<CompareView | null>("compare_state"),
+  compareCancel: () => invoke("compare_cancel"),
+  compareDismiss: () => invoke("compare_dismiss"),
+  compareApply: (id: number, chosen: number[]) => invoke<string | null>("compare_apply", { id, chosen }),
   modelDownload: (id: string, source: "primary" | "mirror") => invoke("model_download", { id, source }),
   modelImport: (id: string, path: string) => invoke("model_import", { id, path }),
   modelPause: (id: string) => invoke("model_pause", { id }),

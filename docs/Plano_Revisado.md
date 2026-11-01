@@ -605,6 +605,8 @@ Se não, parar e decidir com você.
 - Em reunião, só funciona com o áudio salvo.
 - UI lado a lado com escolha por trecho, e CLI `ouveai compare`.
 
+> **Feito em 01/11/2026.** Escolhas: **large-v3-turbo int8** e crate `similar`. Janelas de 20 s, formas coloquiais e muletas fora da lista, janelas em que o Whisper falha descartadas. Ver [ADR-006](adr/006-comparacao-whisper.md) e [resultado](fase7/resultado.md).
+
 ### Fase 8: Parte 5, legenda de vídeo editado (EDL) · M
 
 - `core::edl`: lê o `edl.json` (`file, in, out, position`) e valida antes de tudo:

@@ -9,6 +9,7 @@
 //! ouveai-cli ffmpeg [download [--stop-after-secs N]]
 //! ouveai-cli transcribe <arquivo> [--check] [--chunk N]
 //! ouveai-cli transcribe --from-json <arquivo.json>
+//! ouveai-cli compare <arquivo> [--json saida.json]
 //! ouveai-cli live --eu a.wav --outros b.wav [--echo] [--headphones] [--realtime]
 //! ouveai-cli capture [--secs N] [--no-mic] [--app exe] [--headphones|--speakers] [--save pasta]
 
@@ -24,7 +25,7 @@ use std::time::Duration;
 
 fn usage() -> ! {
     eprintln!(
-        "uso:\n  ouveai-cli paths\n  ouveai-cli models\n  ouveai-cli models download <id> [--mirror] [--stop-after-secs N]\n  ouveai-cli models import <id> <arquivo|pasta>\n  ouveai-cli models verify <id>\n  ouveai-cli config [set <chave> <valor>]\n  ouveai-cli ffmpeg [download [--stop-after-secs N]]\n  ouveai-cli transcribe <arquivo> [--check]\n  ouveai-cli transcribe --from-json <arquivo.json>\n  ouveai-cli live --eu a.wav --outros b.wav [--echo] [--headphones] [--realtime]\n  ouveai-cli capture [--secs N] [--no-mic] [--app exe] [--headphones|--speakers] [--save pasta]"
+        "uso:\n  ouveai-cli paths\n  ouveai-cli models\n  ouveai-cli models download <id> [--mirror] [--stop-after-secs N]\n  ouveai-cli models import <id> <arquivo|pasta>\n  ouveai-cli models verify <id>\n  ouveai-cli config [set <chave> <valor>]\n  ouveai-cli ffmpeg [download [--stop-after-secs N]]\n  ouveai-cli transcribe <arquivo> [--check]\n  ouveai-cli transcribe --from-json <arquivo.json>\n  ouveai-cli compare <arquivo> [--json saida.json]\n  ouveai-cli live --eu a.wav --outros b.wav [--echo] [--headphones] [--realtime]\n  ouveai-cli capture [--secs N] [--no-mic] [--app exe] [--headphones|--speakers] [--save pasta]"
     );
     std::process::exit(2);
 }
@@ -72,6 +73,7 @@ fn main() {
         Some("config") => config_cmd(&args[1..]),
         Some("ffmpeg") => ffmpeg_cmd(&args[1..]),
         Some("transcribe") => transcribe_cmd(&args[1..]),
+        Some("compare") => compare_cmd(&args[1..]),
         Some("live") => live::replay_cmd(&args[1..]),
         Some("capture") => live::capture_cmd(&args[1..]),
         _ => usage(),
@@ -209,6 +211,87 @@ fn transcribe_cmd(args: &[String]) {
     println!("  (confiança por token: o sherpa-onnx 2.0.1 não expõe; heurística 3 sem fonte)");
     if rep.suspects_per_min > suspects::MAX_PER_MIN {
         println!("→ mais de {} por minuto: vale comparar com o Whisper (Parte 4).", suspects::MAX_PER_MIN);
+    }
+}
+
+/// Parte 4: transcreve com o Parakeet e com o Whisper e lista os trechos divergentes.
+fn compare_cmd(args: &[String]) {
+    use ouveai_core::{asr, compare, media, transcribe as tr};
+    use std::path::Path;
+
+    let input = Path::new(args.first().filter(|a| !a.starts_with("--")).unwrap_or_else(|| usage()));
+    let json_out = args.iter().position(|a| a == "--json").map(|i| args.get(i + 1).unwrap_or_else(|| usage()).clone());
+    // Só para medir: janelas do Whisper de até N s.
+    let chunk = match args.iter().position(|a| a == "--chunk") {
+        Some(i) => match args.get(i + 1).and_then(|v| v.parse::<f64>().ok()) {
+            Some(n) if (8.0..=asr::WHISPER_MAX_SECONDS).contains(&n) => n,
+            _ => fail(format!("--chunk precisa de um número entre 8 e {}", asr::WHISPER_MAX_SECONDS)),
+        },
+        None => compare::WHISPER_CHUNK,
+    };
+    if !input.is_file() {
+        fail(format!("arquivo não encontrado: {}", input.display()));
+    }
+    let ff = media::find().unwrap_or_else(|| fail("FFmpeg não encontrado (instale ou rode: ouveai-cli ffmpeg download)"));
+    let threads = asr::file_threads();
+    let cancel = AtomicBool::new(false);
+    let progress = |what: &str, i: usize, n: usize| {
+        print!("\r{:<60}", format!("{what}… {i} de {n}"));
+        std::io::stdout().flush().ok();
+    };
+
+    let t = std::time::Instant::now();
+    let parakeet = asr::Asr::load(threads).unwrap_or_else(|e| fail(e));
+    let p_load = t.elapsed().as_secs_f64();
+    let (tr_, rep) = tr::transcribe(input, &ff.path, &parakeet, &cancel, &mut |s| {
+        if let tr::Stage::Recognizing { chunk, chunks, .. } = s {
+            progress("Parakeet", chunk, chunks)
+        }
+    })
+    .unwrap_or_else(|e| fail(format!("\n{e}")));
+    drop(parakeet);
+
+    let t = std::time::Instant::now();
+    let whisper = asr::Whisper::load(threads).unwrap_or_else(|e| fail(format!("\r{e}")));
+    let w_load = t.elapsed().as_secs_f64();
+    let samples = compare::file_samples(&ff.path, input, &cancel).unwrap_or_else(|e| fail(format!("\n{e}")));
+    let ranges = compare::file_ranges(&samples, &tr_.pauses, chunk);
+    let pass = compare::whisper_pass(&whisper, &samples, &ranges, &tr_.words, &cancel, &mut |i, n| progress("Whisper", i, n))
+        .unwrap_or_else(|e| fail(format!("\n{e}")));
+    println!("\r{:<60}", "");
+
+    let outcome = compare::diverge_pass(&tr_.words, &pass);
+    let divs = &outcome.divergences;
+    let changed: usize = divs.iter().map(|d| d.to - d.from).sum();
+    let fmt_t = |t: f64| format!("{:02}:{:02}:{:04.1}", (t / 3600.0) as u64, (t / 60.0) as u64 % 60, t % 60.0);
+    println!("duração do áudio: {:.1} s · {threads} threads", rep.duration);
+    println!("Parakeet: carga {p_load:.1} s · {:.1} s ({:.1}× tempo real) · {} palavras", rep.transcribe_s, rep.rtf, rep.words);
+    println!(
+        "Whisper:  carga {w_load:.1} s · {:.1} s ({:.1}× tempo real) · {} palavras · {} trechos ({} sem fala, pulados)",
+        pass.secs,
+        rep.duration / pass.secs.max(1e-6),
+        pass.word_count(),
+        pass.windows.len(),
+        pass.skipped()
+    );
+    if !outcome.unreliable.is_empty() {
+        let at: Vec<String> = outcome.unreliable.iter().map(|(a, b)| format!("{}–{}", fmt_t(*a), fmt_t(*b))).collect();
+        println!("⚠ o Whisper falhou em {} trecho(s), descartados: {}", at.len(), at.join(", "));
+    }
+    println!(
+        "\n{} trechos divergentes ({} de {} palavras do Parakeet, {:.1}%):\n",
+        divs.len(),
+        changed,
+        tr_.words.len(),
+        100.0 * changed as f64 / tr_.words.len().max(1) as f64
+    );
+    for d in divs {
+        println!("{}  P: {}", fmt_t(d.start), d.parakeet);
+        println!("{:10}  W: {}\n", "", if d.whisper.is_empty() { "(nada)" } else { &d.whisper });
+    }
+    if let Some(path) = json_out {
+        std::fs::write(&path, serde_json::to_string_pretty(&outcome).unwrap()).unwrap_or_else(|e| fail(e));
+        println!("divergências: {path}");
     }
 }
 

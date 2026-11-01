@@ -319,6 +319,87 @@ impl Store {
         Ok(true)
     }
 
+    /// Troca intervalos de palavras da sessão (Parte 4: escolhas do Whisper).
+    ///
+    /// `edits` são `(de, até, palavras novas)` em posições da lista de palavras da sessão
+    /// (ordem de `idx`), sem sobreposição. Cada palavra nova fica no segmento, entre os
+    /// tocados pelo intervalo, mais perto do seu meio. Os segmentos tocados ganham o texto,
+    /// os tempos e a marca de editado; um segmento que fica sem palavras é apagado. Os
+    /// `idx` da sessão são renumerados em sequência. Tudo numa transação; a busca (FTS)
+    /// acompanha pelos triggers.
+    pub fn replace_words(&mut self, session_id: i64, edits: &[(usize, usize, Vec<Word>)]) -> rusqlite::Result<()> {
+        let tx = self.conn.transaction()?;
+        let rows: Vec<(i64, i64, Word)> = tx
+            .prepare(
+                "SELECT w.id, w.segment_id, w.word, w.start_s, w.end_s FROM words w JOIN segments g ON g.id = w.segment_id
+                 WHERE g.session_id = ?1 ORDER BY w.idx",
+            )?
+            .query_map([session_id], |r| Ok((r.get(0)?, r.get(1)?, Word { word: r.get(2)?, start: r.get(3)?, end: r.get(4)? })))?
+            .collect::<Result<_, _>>()?;
+        let mut edits: Vec<&(usize, usize, Vec<Word>)> = edits.iter().collect();
+        edits.sort_by_key(|e| e.0);
+        let bad = |m: &str| rusqlite::Error::InvalidParameterName(m.into());
+        let mut prev_end = 0;
+        for (from, to, _) in &edits {
+            if from >= to || *to > rows.len() || *from < prev_end {
+                return Err(bad("intervalo de palavras inválido ou sobreposto"));
+            }
+            prev_end = *to;
+        }
+
+        // Nova lista (segmento, palavra) e os segmentos tocados.
+        let mut out: Vec<(i64, Word)> = Vec::with_capacity(rows.len());
+        let mut touched: Vec<i64> = Vec::new();
+        let mut i = 0;
+        for (from, to, new) in edits {
+            out.extend(rows[i..*from].iter().map(|(_, seg, w)| (*seg, w.clone())));
+            let old = &rows[*from..*to];
+            // Faixa de tempo de cada segmento tocado, dentro do intervalo trocado.
+            let mut spans: Vec<(i64, f64, f64)> = Vec::new();
+            for (_, seg, w) in old {
+                match spans.iter_mut().find(|s| s.0 == *seg) {
+                    Some(s) => s.2 = s.2.max(w.end),
+                    None => spans.push((*seg, w.start, w.end)),
+                }
+                if !touched.contains(seg) {
+                    touched.push(*seg);
+                }
+            }
+            for w in new {
+                let mid = (w.start + w.end) / 2.0;
+                let dist = |s: &(i64, f64, f64)| if mid < s.1 { s.1 - mid } else if mid > s.2 { mid - s.2 } else { 0.0 };
+                let seg = spans.iter().min_by(|a, b| dist(a).total_cmp(&dist(b))).map(|s| s.0).expect("intervalo não vazio");
+                out.push((seg, w.clone()));
+            }
+            i = *to;
+        }
+        out.extend(rows[i..].iter().map(|(_, seg, w)| (*seg, w.clone())));
+
+        tx.execute("DELETE FROM words WHERE segment_id IN (SELECT id FROM segments WHERE session_id = ?1)", [session_id])?;
+        {
+            let mut st = tx.prepare("INSERT INTO words (segment_id, idx, word, start_s, end_s) VALUES (?1, ?2, ?3, ?4, ?5)")?;
+            for (k, (seg, w)) in out.iter().enumerate() {
+                st.execute(params![seg, k as i64, w.word, w.start, w.end])?;
+            }
+        }
+        for seg in touched {
+            let n: i64 = tx.query_row("SELECT COUNT(*) FROM words WHERE segment_id = ?1", [seg], |r| r.get(0))?;
+            if n == 0 {
+                tx.execute("DELETE FROM segments WHERE id = ?1", [seg])?;
+                continue;
+            }
+            tx.execute(
+                "UPDATE segments SET flags = flags | ?2,
+                    text = (SELECT group_concat(word, ' ') FROM (SELECT word FROM words WHERE segment_id = ?1 ORDER BY idx)),
+                    start_s = (SELECT MIN(start_s) FROM words WHERE segment_id = ?1),
+                    end_s = (SELECT MAX(end_s) FROM words WHERE segment_id = ?1)
+                 WHERE id = ?1",
+                params![seg, FLAG_EDITED],
+            )?;
+        }
+        tx.commit()
+    }
+
     // ---------- reunião (Fase 4) ----------
 
     pub fn create_meeting(&self, title: &str, app_version: &str) -> rusqlite::Result<i64> {
@@ -654,6 +735,35 @@ mod tests {
         assert_eq!(s.session(1).unwrap().unwrap().duration_s, Some(4.5));
         assert!(s.audio(1).unwrap().is_some_and(|(d, exp)| d == "C:/r/1" && exp.is_some()));
         assert_eq!(s.recover_orphans(Some(7)).unwrap(), 0);
+        drop(s);
+        std::fs::remove_dir_all(&dir).ok();
+    }
+    #[test]
+    fn trocar_palavras_mantem_ordem_tempos_e_busca() {
+        let (dir, mut s) = tmp("replace");
+        let words = |v: &[(&str, f64)]| v.iter().map(|(w, t)| Word { word: (*w).into(), start: *t, end: t + 0.5 }).collect::<Vec<_>>();
+        let id = s.create_meeting("r", "0").unwrap();
+        let a = s.add_segment(id, "EU", "o mike soft chegou", 0, &words(&[("o", 0.0), ("mike", 1.0), ("soft", 2.0), ("chegou", 3.0)])).unwrap();
+        let b = s.add_segment(id, "OUTROS", "legal demais", 0, &words(&[("legal", 5.0), ("demais", 6.0)])).unwrap();
+        // "mike soft" (1..3) vira uma palavra só; "demais" (5..6) some.
+        let novo = vec![Word { word: "Microsoft".into(), start: 1.0, end: 2.5 }];
+        s.replace_words(id, &[(5, 6, vec![]), (1, 3, novo)]).unwrap();
+        let segs = s.segments(id).unwrap();
+        assert_eq!(segs.len(), 2);
+        assert_eq!((segs[0].id, segs[0].text.as_str(), segs[0].flags & FLAG_EDITED), (a, "o Microsoft chegou", FLAG_EDITED));
+        assert_eq!((segs[1].id, segs[1].text.as_str(), segs[1].end_s), (b, "legal", 5.5));
+        let ws = s.segment_words(id).unwrap();
+        assert_eq!(ws.iter().map(|(_, w)| w.word.as_str()).collect::<Vec<_>>(), ["o", "Microsoft", "chegou", "legal"]);
+        assert_eq!(s.search("microsoft", 10).unwrap().len(), 1);
+        assert!(s.search("soft", 10).unwrap().is_empty());
+        // Segmento que fica vazio é apagado; idx continua em sequência.
+        s.replace_words(id, &[(3, 4, vec![])]).unwrap();
+        assert_eq!(s.segments(id).unwrap().len(), 1);
+        s.add_segment(id, "EU", "fim", 0, &words(&[("fim", 9.0)])).unwrap();
+        assert_eq!(s.segment_words(id).unwrap().len(), 4);
+        // Intervalo inválido não muda nada.
+        assert!(s.replace_words(id, &[(0, 2, vec![]), (1, 3, vec![])]).is_err());
+        assert_eq!(s.segment_words(id).unwrap().len(), 4);
         drop(s);
         std::fs::remove_dir_all(&dir).ok();
     }

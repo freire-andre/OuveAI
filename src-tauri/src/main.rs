@@ -3,6 +3,7 @@
 #![windows_subsystem = "windows"]
 
 mod actions;
+mod compare;
 mod diag;
 mod ffmpeg;
 mod files;
@@ -162,6 +163,31 @@ async fn file_update_word(app: AppHandle, id: i64, idx: i64, text: String) -> Re
 #[tauri::command]
 async fn file_export(app: AppHandle, id: i64, dest: String) -> Result<(), String> {
     files::export(&app, id, &dest)
+}
+
+#[tauri::command]
+fn compare_start(app: AppHandle, id: i64) -> Result<(), String> {
+    compare::start(&app, id)
+}
+
+#[tauri::command]
+fn compare_state(app: AppHandle) -> Option<compare::CompareView> {
+    compare::view(&app)
+}
+
+#[tauri::command]
+fn compare_cancel(app: AppHandle) {
+    compare::cancel(&app)
+}
+
+#[tauri::command]
+fn compare_dismiss(app: AppHandle) {
+    compare::dismiss(&app)
+}
+
+#[tauri::command]
+async fn compare_apply(app: AppHandle, id: i64, chosen: Vec<usize>) -> Result<Option<String>, String> {
+    compare::apply(&app, id, chosen)
 }
 
 #[tauri::command]
@@ -584,8 +610,14 @@ fn main() {
         .manage(models::Models::default())
         .manage(files::Files::default())
         .manage(live::Live::default())
+        .manage(compare::Compare::default())
         .invoke_handler(tauri::generate_handler![
             diag::export_diagnostics,
+            compare_start,
+            compare_state,
+            compare_cancel,
+            compare_dismiss,
+            compare_apply,
             diag::check_update,
             diag::open_release,
             get_status,

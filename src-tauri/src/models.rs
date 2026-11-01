@@ -37,6 +37,8 @@ pub struct ModelView {
     /// URL do pacote para o plano B "Baixar pelo navegador".
     pub browser_url: Option<String>,
     pub has_mirror: bool,
+    /// Para que serve (modelos opcionais).
+    pub note: Option<String>,
 }
 
 pub fn list(app: &AppHandle) -> Vec<ModelView> {
@@ -75,6 +77,7 @@ pub fn list(app: &AppHandle) -> Vec<ModelView> {
                 id: spec.id,
                 name: spec.name,
                 license: spec.license,
+                note: spec.note,
             }
         })
         .collect()

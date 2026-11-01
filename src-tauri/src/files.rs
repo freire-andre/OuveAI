@@ -31,6 +31,8 @@ pub struct Item {
 pub enum Phase {
     /// Esperando a gravação da reunião terminar (L18).
     Waiting,
+    /// Esperando a comparação com o Whisper terminar (os dois modelos não cabem juntos).
+    WaitingCompare,
     Loading,
     Working { stage: Stage },
 }
@@ -161,6 +163,14 @@ fn worker(app: &AppHandle) {
             }
             std::thread::sleep(Duration::from_millis(500));
         }
+        let mut waited = false;
+        while crate::compare::running(app) && !cancel.load(Ordering::Relaxed) {
+            if !waited {
+                set_phase(app, &item, Phase::WaitingCompare);
+                waited = true;
+            }
+            std::thread::sleep(Duration::from_millis(500));
+        }
 
         let result = (|| -> Result<(i64, Option<String>), String> {
             if cancel.load(Ordering::Relaxed) {
@@ -274,10 +284,18 @@ pub fn update_word(app: &AppHandle, id: i64, idx: i64, text: &str) -> Result<Opt
     if !store.update_word(id, idx, text).map_err(|e| e.to_string())? {
         return Err("palavra não encontrada".into());
     }
+    drop(store);
+    refresh_outputs(app, id)
+}
+
+/// Regenera o `.json`/`.txt`/`.srt` ao lado do original, só se eles já estavam lá
+/// (equivale ao --from-json). Devolve um aviso se não deu para gravar.
+pub fn refresh_outputs(app: &AppHandle, id: i64) -> Result<Option<String>, String> {
+    let st = app.state::<AppState>();
+    let store = st.store.lock().unwrap();
     let t = store.transcript(id).map_err(|e| e.to_string())?.ok_or("sessão não encontrada")?;
     let src = store.session(id).map_err(|e| e.to_string())?.and_then(|s| s.source_path);
     drop(store);
-    // Regenera só se os arquivos já estavam lá (equivale ao --from-json).
     let warning = match src.map(PathBuf::from) {
         Some(p) if tr::outputs_for(&p).json.exists() => tr::write_all(&t, &tr::outputs_for(&p)).err().map(|e| format!("não foi possível atualizar os arquivos: {e}")),
         _ => None,

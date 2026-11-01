@@ -1,6 +1,7 @@
 //! Núcleo do OuveAI (sem Tauri, sem WASAPI).
 
 pub mod asr;
+pub mod compare;
 pub mod diag;
 pub mod export;
 pub mod hash;

@@ -1,9 +1,10 @@
-//! Reconhecedor offline (Parakeet TDT 0.6b v3 int8 via `sherpa-onnx`).
+//! Reconhecedores offline via `sherpa-onnx`: Parakeet TDT 0.6b v3 int8 (principal)
+//! e Whisper large-v3-turbo int8 (Parte 4, comparação).
 //! Campos e nomes conferidos no crate 2.0.1 e no S1 (regra 5).
 
 use crate::models::{self, Presence};
 use crate::words::Tokens;
-use sherpa_onnx::{OfflineRecognizer, OfflineRecognizerConfig, OfflineTransducerModelConfig};
+use sherpa_onnx::{OfflineRecognizer, OfflineRecognizerConfig, OfflineTransducerModelConfig, OfflineWhisperModelConfig};
 
 pub const SAMPLE_RATE: i32 = 16_000;
 
@@ -60,5 +61,52 @@ impl Asr {
             Some(r) => Tokens { timestamps: r.timestamps.unwrap_or_default(), durations: r.durations, tokens: r.tokens },
             None => Tokens::default(),
         })
+    }
+}
+
+/// O Whisper enxerga no máximo 30 s por vez (janela fixa do encoder).
+pub const WHISPER_MAX_SECONDS: f64 = 30.0;
+
+/// Whisper large-v3-turbo (Parte 4): só texto, sem tempo por palavra.
+pub struct Whisper {
+    rec: OfflineRecognizer,
+}
+
+impl Whisper {
+    pub fn load(threads: i32) -> Result<Self, String> {
+        let spec = models::whisper();
+        match models::presence(&spec) {
+            Presence::Ready => {}
+            Presence::Absent => return Err("o Whisper não está instalado (baixe em Modelos)".into()),
+            Presence::Corrupt(d) => return Err(format!("o Whisper está incompleto ({d}); baixe ou importe de novo")),
+        }
+        let f = |name: &str| Some(spec.file(name).to_string_lossy().into_owned());
+        let mut cfg = OfflineRecognizerConfig::default();
+        cfg.model_config.whisper = OfflineWhisperModelConfig {
+            encoder: f("turbo-encoder.int8.onnx"),
+            decoder: f("turbo-decoder.int8.onnx"),
+            language: Some("pt".into()),
+            task: Some("transcribe".into()),
+            tail_paddings: -1,
+            ..Default::default()
+        };
+        cfg.model_config.tokens = f("turbo-tokens.txt");
+        cfg.model_config.num_threads = threads;
+        cfg.model_config.provider = Some("cpu".into());
+        cfg.decoding_method = Some("greedy_search".into());
+        let rec = OfflineRecognizer::create(&cfg).ok_or("falha ao carregar o Whisper")?;
+        Ok(Self { rec })
+    }
+
+    /// Texto de um trecho de até 30 s (16 kHz mono).
+    pub fn recognize(&self, samples: &[f32]) -> Result<String, String> {
+        let secs = samples.len() as f64 / SAMPLE_RATE as f64;
+        if secs > WHISPER_MAX_SECONDS + 0.5 {
+            return Err(format!("trecho de {secs:.0} s passa do limite do Whisper (30 s)"));
+        }
+        let stream = self.rec.create_stream();
+        stream.accept_waveform(SAMPLE_RATE, samples);
+        self.rec.decode(&stream);
+        Ok(stream.get_result().map(|r| r.text.trim().to_string()).unwrap_or_default())
     }
 }
