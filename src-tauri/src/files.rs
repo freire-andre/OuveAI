@@ -164,7 +164,7 @@ fn worker(app: &AppHandle) {
             std::thread::sleep(Duration::from_millis(500));
         }
         let mut waited = false;
-        while crate::compare::running(app) && !cancel.load(Ordering::Relaxed) {
+        while (crate::compare::running(app) || crate::edl::running(app)) && !cancel.load(Ordering::Relaxed) {
             if !waited {
                 set_phase(app, &item, Phase::WaitingCompare);
                 waited = true;

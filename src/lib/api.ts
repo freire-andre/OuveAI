@@ -290,6 +290,75 @@ export async function watchCompare(cb: (v: CompareView | null) => void): Promise
   return listen<CompareView | null>("compare", (e) => cb(e.payload));
 }
 
+// --- Legendas de vídeo editado (Fase 8) ---
+
+export interface EdlCut {
+  file: string;
+  in: number;
+  out: number;
+  position: number;
+  /** Palavras do bruto que entram no corte (null sem o `.json` do bruto). */
+  words: number | null;
+}
+
+export interface EdlView {
+  path: string;
+  cuts: EdlCut[];
+  errors: string[];
+  warnings: string[];
+  gaps: { start: number; end: number }[];
+}
+
+export interface EdlGenerated {
+  srt: string;
+  cues: number;
+  words: number;
+}
+
+export type EdlCause = { kind: "shift"; by: number } | { kind: "drift"; from: number; to: number } | { kind: "isolated" };
+
+export interface EdlIssue {
+  /** Índice do corte (a partir de 0). */
+  cut: number;
+  start: number;
+  end: number;
+  words: number;
+  worst: number;
+  cause: EdlCause;
+  why: string;
+}
+
+export interface EdlFix {
+  /** Número do corte (a partir de 1). */
+  cut: number;
+  field: "in" | "out" | "position";
+  old: number;
+  new: number;
+}
+
+export interface EdlCheck {
+  matched: number;
+  unmatched_subs: number;
+  unmatched_check: number;
+  median: number;
+  max: number;
+  issues: EdlIssue[];
+  fixes: EdlFix[];
+}
+
+export type EdlCheckView = { edl: string; video: string } & (
+  | { kind: "loading" }
+  | { kind: "working"; stage: Stage }
+  | { kind: "done"; check: EdlCheck; generated: EdlGenerated }
+  | { kind: "failed"; error: string }
+);
+
+/** Estado da verificação + atualizações (evento `edl`). */
+export async function watchEdl(cb: (v: EdlCheckView | null) => void): Promise<() => void> {
+  cb(await api.edlState());
+  return listen<EdlCheckView | null>("edl", (e) => cb(e.payload));
+}
+
 /** Resultado da busca. `snippet` traz os termos entre U+0002 e U+0003. */
 export interface Hit {
   session_id: number;
@@ -342,6 +411,13 @@ export const api = {
   compareCancel: () => invoke("compare_cancel"),
   compareDismiss: () => invoke("compare_dismiss"),
   compareApply: (id: number, chosen: number[]) => invoke<string | null>("compare_apply", { id, chosen }),
+  edlOpen: (path: string) => invoke<EdlView>("edl_open", { path }),
+  edlGenerate: (path: string) => invoke<EdlGenerated>("edl_generate", { path }),
+  edlCheckStart: (path: string, video: string) => invoke("edl_check_start", { path, video }),
+  edlState: () => invoke<EdlCheckView | null>("edl_state"),
+  edlCancel: () => invoke("edl_cancel"),
+  edlDismiss: () => invoke("edl_dismiss"),
+  edlApply: (fixes: EdlFix[]) => invoke<string>("edl_apply", { fixes }),
   modelDownload: (id: string, source: "primary" | "mirror") => invoke("model_download", { id, source }),
   modelImport: (id: string, path: string) => invoke("model_import", { id, path }),
   modelPause: (id: string) => invoke("model_pause", { id }),

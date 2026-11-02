@@ -10,6 +10,7 @@
 //! ouveai-cli transcribe <arquivo> [--check] [--chunk N]
 //! ouveai-cli transcribe --from-json <arquivo.json>
 //! ouveai-cli compare <arquivo> [--json saida.json]
+//! ouveai-cli edl-subs <edl.json> [--out final.srt] [--check <vídeo final | final.check.json>]
 //! ouveai-cli live --eu a.wav --outros b.wav [--echo] [--headphones] [--realtime]
 //! ouveai-cli capture [--secs N] [--no-mic] [--app exe] [--headphones|--speakers] [--save pasta]
 
@@ -25,7 +26,7 @@ use std::time::Duration;
 
 fn usage() -> ! {
     eprintln!(
-        "uso:\n  ouveai-cli paths\n  ouveai-cli models\n  ouveai-cli models download <id> [--mirror] [--stop-after-secs N]\n  ouveai-cli models import <id> <arquivo|pasta>\n  ouveai-cli models verify <id>\n  ouveai-cli config [set <chave> <valor>]\n  ouveai-cli ffmpeg [download [--stop-after-secs N]]\n  ouveai-cli transcribe <arquivo> [--check]\n  ouveai-cli transcribe --from-json <arquivo.json>\n  ouveai-cli compare <arquivo> [--json saida.json]\n  ouveai-cli live --eu a.wav --outros b.wav [--echo] [--headphones] [--realtime]\n  ouveai-cli capture [--secs N] [--no-mic] [--app exe] [--headphones|--speakers] [--save pasta]"
+        "uso:\n  ouveai-cli paths\n  ouveai-cli models\n  ouveai-cli models download <id> [--mirror] [--stop-after-secs N]\n  ouveai-cli models import <id> <arquivo|pasta>\n  ouveai-cli models verify <id>\n  ouveai-cli config [set <chave> <valor>]\n  ouveai-cli ffmpeg [download [--stop-after-secs N]]\n  ouveai-cli transcribe <arquivo> [--check]\n  ouveai-cli transcribe --from-json <arquivo.json>\n  ouveai-cli compare <arquivo> [--json saida.json]\n  ouveai-cli edl-subs <edl.json> [--out final.srt] [--check <vídeo final|final.check.json>]\n  ouveai-cli live --eu a.wav --outros b.wav [--echo] [--headphones] [--realtime]\n  ouveai-cli capture [--secs N] [--no-mic] [--app exe] [--headphones|--speakers] [--save pasta]"
     );
     std::process::exit(2);
 }
@@ -74,6 +75,7 @@ fn main() {
         Some("ffmpeg") => ffmpeg_cmd(&args[1..]),
         Some("transcribe") => transcribe_cmd(&args[1..]),
         Some("compare") => compare_cmd(&args[1..]),
+        Some("edl-subs") => edl_cmd(&args[1..]),
         Some("live") => live::replay_cmd(&args[1..]),
         Some("capture") => live::capture_cmd(&args[1..]),
         _ => usage(),
@@ -123,6 +125,85 @@ fn ffmpeg_cmd(args: &[String]) {
 fn fail(msg: impl std::fmt::Display) -> ! {
     eprintln!("{msg}");
     std::process::exit(1)
+}
+
+/// Parte 5: legenda do vídeo final a partir do `edl.json` e dos `.json` dos brutos.
+fn edl_cmd(args: &[String]) {
+    use ouveai_core::edl;
+    use ouveai_core::transcribe as tr;
+    use std::path::{Path, PathBuf};
+
+    let path = Path::new(args.first().filter(|a| !a.starts_with("--")).unwrap_or_else(|| usage()));
+    let opt = |name: &str| args.iter().position(|a| a == name).map(|i| PathBuf::from(args.get(i + 1).unwrap_or_else(|| usage())));
+    let check = opt("--check");
+
+    let cuts = edl::read(path).unwrap_or_else(|e| fail(e));
+    let gaps = edl::validate(&cuts).unwrap_or_else(|errs| fail(format!("edl.json com erro:\n  {}", errs.join("\n  "))));
+    let sources = edl::load_sources(path, &cuts).unwrap_or_else(|errs| fail(errs.join("\n")));
+    println!("{} cortes", cuts.len());
+    for (i, (c, t)) in cuts.iter().zip(&sources).enumerate() {
+        println!("  {}. {}  {:.3}–{:.3} → {}  ({} palavras)", i + 1, c.file, c.in_, c.out, edl::clock(c.position), edl::map_cut(c, t).0.len());
+    }
+    if !gaps.is_empty() {
+        println!("lacunas entre cortes (confira):");
+        for g in &gaps {
+            println!("  {} – {}", edl::clock(g.start), edl::clock(g.end));
+        }
+    }
+    for w in edl::warnings(&cuts, &sources) {
+        println!("⚠ {w}");
+    }
+
+    let built = edl::build(&cuts, &sources);
+    // Com o vídeo final, a legenda leva o nome dele (o player carrega sozinho).
+    let video = check.as_deref().filter(|c| !c.to_string_lossy().to_lowercase().ends_with(".json"));
+    let out = opt("--out").unwrap_or_else(|| edl::srt_path(path, video));
+    std::fs::write(&out, ouveai_core::subs::to_srt(&built.cues)).unwrap_or_else(|e| fail(e));
+    println!("legenda: {} ({} blocos, {} palavras)", out.display(), built.cues.len(), built.words.len());
+
+    let Some(check) = check else { return };
+    let words = if check.to_string_lossy().to_lowercase().ends_with(".json") {
+        tr::read_json(&check).unwrap_or_else(|e| fail(e)).words
+    } else {
+        verify_transcribe(&check)
+    };
+    let r = edl::check(&cuts, &built, &words);
+    println!("\nverificação ({} pares casados)", r.matched);
+    println!("  desvio do início: mediano {:.3} s · máximo {:.3} s (referência: {:.2} s mediano)", r.median, r.max, edl::DESVIO_REFERENCIA);
+    println!("  sem par: {} da legenda · {} da verificação", r.unmatched_subs, r.unmatched_check);
+    if r.issues.is_empty() {
+        println!("  nenhum trecho com desvio > {:.1} s", edl::DESVIO_LISTAR);
+    } else {
+        println!("trechos com desvio > {:.1} s:", edl::DESVIO_LISTAR);
+        for is in &r.issues {
+            println!("  {}–{} (corte {}, {} {}, até {:+.2} s): {}", edl::clock(is.start), edl::clock(is.end), is.cut + 1, is.words, if is.words == 1 { "palavra" } else { "palavras" }, is.worst, is.why);
+        }
+    }
+    if !r.fixes.is_empty() {
+        println!("correção proposta no edl.json (aplique no app, em Legendas, ou edite o arquivo):");
+        for f in &r.fixes {
+            println!("  corte {}: {} {:.3} → {:.3}", f.cut, f.field, f.old, f.new);
+        }
+    }
+}
+
+/// Transcreve o vídeo final só para a verificação (`.check.json`, não toca em nenhum `.srt`).
+fn verify_transcribe(video: &std::path::Path) -> Vec<ouveai_core::words::Word> {
+    use ouveai_core::transcribe as tr;
+    use ouveai_core::{asr, media};
+    if !video.is_file() {
+        fail(format!("arquivo não encontrado: {}", video.display()));
+    }
+    let ff = media::find().unwrap_or_else(|| fail("FFmpeg não encontrado"));
+    let a = asr::Asr::load(asr::file_threads()).unwrap_or_else(|e| fail(e));
+    let cancel = AtomicBool::new(false);
+    print!("transcrevendo o vídeo final para a verificação…");
+    std::io::stdout().flush().ok();
+    let (t, rep) = tr::transcribe(video, &ff.path, &a, &cancel, &mut |_| {}).unwrap_or_else(|e| fail(format!("\n{e}")));
+    let p = tr::check_path(video);
+    std::fs::write(&p, tr::to_json(&t)).unwrap_or_else(|e| fail(e));
+    println!(" {:.1} s de áudio em {:.1} s → {}", rep.duration, rep.transcribe_s, p.display());
+    t.words
 }
 
 fn transcribe_cmd(args: &[String]) {

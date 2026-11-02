@@ -62,6 +62,7 @@ O áudio não sai do seu computador: sem nuvem, sem conta, sem telemetria.</p>
         <li>exporta <code>.srt</code>, <code>.txt</code> e <code>.json</code></li>
         <li>editor com os trechos suspeitos destacados</li>
         <li><b>comparar com o Whisper</b> (opcional): mostra lado a lado só os trechos em que os dois modelos discordam, e você escolhe</li>
+        <li><b>legenda de vídeo editado</b>: a partir dos brutos transcritos e de um <code>edl.json</code> com os cortes, com verificação no vídeo final</li>
         <li>cerca de <b>13× mais rápido</b> que o tempo real numa CPU comum</li>
       </ul>
     </td>
@@ -178,6 +179,7 @@ Na primeira compilação, o crate `sherpa-onnx` baixa a biblioteca estática (~1
 ```powershell
 cargo run -p ouveai-cli --release -- models download parakeet-tdt-0.6b-v3-int8
 cargo run -p ouveai-cli --release -- transcribe caminho\do\audio.mp4
+cargo run -p ouveai-cli --release -- edl-subs edl.json --check final.mp4   # legenda do vídeo editado + verificação
 cargo run -p ouveai-cli --release -- live --help     # replay de dois WAVs no pipeline ao vivo
 ```
 
@@ -243,7 +245,7 @@ As decisões técnicas estão em [`docs/adr/`](docs/adr) e o plano completo em [
 | 5 | Histórico, busca sem acento, copiar em Markdown, exportar | ✅ |
 | 6 | Instalador final, tela de licenças, diagnóstico, piloto | 🧪 piloto (0.9.0) |
 | 7 | Comparação com Whisper (opcional) | ✅ |
-| 8 | Legenda de vídeo editado (EDL) | 🔜 |
+| 8 | Legenda de vídeo editado (EDL) | ✅ |
 
 ---
 

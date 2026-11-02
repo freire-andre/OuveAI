@@ -4,6 +4,7 @@
 
 mod actions;
 mod compare;
+mod edl;
 mod diag;
 mod ffmpeg;
 mod files;
@@ -188,6 +189,43 @@ fn compare_dismiss(app: AppHandle) {
 #[tauri::command]
 async fn compare_apply(app: AppHandle, id: i64, chosen: Vec<usize>) -> Result<Option<String>, String> {
     compare::apply(&app, id, chosen)
+}
+
+// --- Legendas de vídeo editado (Fase 8) ---
+
+#[tauri::command]
+async fn edl_open(path: String) -> edl::EdlView {
+    edl::open(&path)
+}
+
+#[tauri::command]
+async fn edl_generate(path: String) -> Result<edl::Generated, String> {
+    edl::generate(&path)
+}
+
+#[tauri::command]
+fn edl_check_start(app: AppHandle, path: String, video: String) -> Result<(), String> {
+    edl::check_start(&app, path, video)
+}
+
+#[tauri::command]
+fn edl_state(app: AppHandle) -> Option<edl::CheckView> {
+    edl::view(&app)
+}
+
+#[tauri::command]
+fn edl_cancel(app: AppHandle) {
+    edl::cancel(&app)
+}
+
+#[tauri::command]
+fn edl_dismiss(app: AppHandle) {
+    edl::dismiss(&app)
+}
+
+#[tauri::command]
+async fn edl_apply(app: AppHandle, fixes: Vec<ouveai_core::edl::Fix>) -> Result<String, String> {
+    edl::apply(&app, fixes)
 }
 
 #[tauri::command]
@@ -611,6 +649,7 @@ fn main() {
         .manage(files::Files::default())
         .manage(live::Live::default())
         .manage(compare::Compare::default())
+        .manage(edl::Edl::default())
         .invoke_handler(tauri::generate_handler![
             diag::export_diagnostics,
             compare_start,
@@ -618,6 +657,13 @@ fn main() {
             compare_cancel,
             compare_dismiss,
             compare_apply,
+            edl_open,
+            edl_generate,
+            edl_check_start,
+            edl_state,
+            edl_cancel,
+            edl_dismiss,
+            edl_apply,
             diag::check_update,
             diag::open_release,
             get_status,

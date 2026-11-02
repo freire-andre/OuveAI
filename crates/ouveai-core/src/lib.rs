@@ -3,6 +3,7 @@
 pub mod asr;
 pub mod compare;
 pub mod diag;
+pub mod edl;
 pub mod export;
 pub mod hash;
 pub mod live;

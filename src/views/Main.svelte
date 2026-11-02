@@ -7,9 +7,10 @@
   import Models from "./Models.svelte";
   import Files from "./Files.svelte";
   import Editor from "./Editor.svelte";
+  import Subtitles from "./Subtitles.svelte";
 
-  type View = "sessions" | "files" | "models" | "settings";
-  const views: View[] = ["sessions", "files", "models", "settings"];
+  type View = "sessions" | "files" | "subtitles" | "models" | "settings";
+  const views: View[] = ["sessions", "files", "subtitles", "models", "settings"];
   const asView = (v: string): View => (views.includes(v as View) ? (v as View) : "sessions");
   const fromHash = (): View => asView(location.hash.slice(1));
 
@@ -29,6 +30,7 @@
   const nav: { id: View; label: string }[] = [
     { id: "sessions", label: "Sessões" },
     { id: "files", label: "Arquivos" },
+    { id: "subtitles", label: "Legendas" },
     { id: "models", label: "Modelos" },
     { id: "settings", label: "Configurações" },
   ];
@@ -62,6 +64,8 @@
         {:else}
           <Files onOpen={(id) => (editing = id)} />
         {/if}
+      {:else if view === "subtitles"}
+        <Subtitles />
       {:else if view === "models"}
         <Models />
       {:else}

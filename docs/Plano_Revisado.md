@@ -623,6 +623,8 @@ Se não, parar e decidir com você.
   - listar desvios > 0,3 s com a causa provável e propor a correção **na origem** (`edl.json`), sem empurrar tempos.
 - UI "Legendas" e CLI `ouveai edl-subs`.
 
+> **Feito em 02/11/2026.** A correção proposta só é aplicada com um clique, com cópia em `edl.json.bak`. A legenda leva o nome do vídeo final quando ele é verificado. Ver [ADR-007](adr/007-legenda-edl.md) e [resultado](fase8/resultado.md).
+
 ---
 
 ## 9. Modelo de dados (revisado)
