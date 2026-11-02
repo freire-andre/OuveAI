@@ -2,13 +2,67 @@
 //! são criadas quando abertas e destruídas quando fechadas.
 
 use crate::state::AppState;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
+use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 use tauri::webview::{PageLoadEvent, PageLoadPayload};
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 
 pub const MAIN: &str = "main";
 pub const MINI: &str = "mini";
 pub const WIZARD: &str = "wizard";
+
+/// Já há uma caixa de erro aberta (não empilha várias se a pessoa clicar de novo).
+static SHOWING: AtomicBool = AtomicBool::new(false);
+
+/// Checa o WebView2 antes de criar uma janela. Sem ele, o Tauri mostraria uma caixa
+/// genérica em inglês; aqui a pessoa vê uma explicação em português e a janela não é
+/// pedida.
+fn webview_ok(app: &AppHandle, what: &str) -> bool {
+    match wry::webview_version() {
+        Ok(_) => true,
+        Err(e) => {
+            log::error!("WebView2 indisponível ao abrir {what}: {e}");
+            error_box(app, None);
+            false
+        }
+    }
+}
+
+/// Falha ao criar uma janela por outro motivo.
+fn window_failed(app: &AppHandle, what: &str, e: &tauri::Error) {
+    log::error!("falha ao criar {what}: {e}");
+    let err = e.to_string();
+    error_box(app, (!err.to_lowercase().contains("webview")).then_some(err));
+}
+
+/// Caixa nativa do Windows (não depende da WebView). `detail` = `None` é o caso do
+/// WebView2. O erro do sistema não traz texto de reunião nem nome de arquivo (regra 8).
+fn error_box(app: &AppHandle, detail: Option<String>) {
+    if SHOWING.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    let webview = detail.is_none();
+    let text = if let Some(err) = detail {
+        format!(
+            "O OuveAI não conseguiu abrir a janela.\n\nDetalhe: {err}\n\nFeche o OuveAI pela bandeja e abra de novo. \
+             Se continuar, os detalhes ficam no log em {}.",
+            ouveai_core::paths::logs_dir().display()
+        )
+    } else {
+        "O OuveAI não conseguiu abrir a janela porque o Microsoft Edge WebView2, que o Windows usa para mostrar \
+         as telas do app, não foi encontrado ou está com problema.\n\n\
+         Para resolver, instale ou repare o \"Microsoft Edge WebView2 Runtime\" (em Configurações › Aplicativos, \
+         ou pelo site da Microsoft) ou peça ajuda ao TI. Depois, abra o OuveAI de novo.\n\n\
+         Nenhuma reunião ou transcrição foi perdida."
+            .to_string()
+    };
+    app.dialog()
+        .message(text)
+        .title(if webview { "OuveAI: falta o WebView2" } else { "OuveAI" })
+        .kind(MessageDialogKind::Error)
+        .show(|_| SHOWING.store(false, Ordering::SeqCst));
+}
 const MINI_W: f64 = 420.0;
 const MINI_H: f64 = 260.0;
 
@@ -23,6 +77,9 @@ pub fn open_main(app: &AppHandle, view: Option<&str>) {
         }
         return;
     }
+    if !webview_ok(app, "a janela principal") {
+        return;
+    }
     let st = app.state::<AppState>();
     st.opening.lock().unwrap().insert(MAIN.into(), Instant::now());
     let url = format!("index.html#{}", view.unwrap_or("sessions"));
@@ -34,7 +91,7 @@ pub fn open_main(app: &AppHandle, view: Option<&str>) {
         .content_protected(st.is_stealth())
         .build();
     if let Err(e) = r {
-        log::error!("falha ao criar a janela principal: {e}");
+        window_failed(app, "a janela principal", &e);
     }
 }
 
@@ -43,6 +100,9 @@ pub fn open_wizard(app: &AppHandle) {
     if let Some(w) = app.get_webview_window(WIZARD) {
         let _ = w.show();
         let _ = w.set_focus();
+        return;
+    }
+    if !webview_ok(app, "o assistente") {
         return;
     }
     let st = app.state::<AppState>();
@@ -57,7 +117,7 @@ pub fn open_wizard(app: &AppHandle) {
         .content_protected(st.is_stealth())
         .build();
     if let Err(e) = r {
-        log::error!("falha ao criar o assistente: {e}");
+        window_failed(app, "o assistente", &e);
     }
 }
 
@@ -73,6 +133,9 @@ pub fn show_mini(app: &AppHandle) {
     if let Some(w) = app.get_webview_window(MINI) {
         ensure_visible(app, &w);
         let _ = w.show();
+        return;
+    }
+    if !webview_ok(app, "a mini") {
         return;
     }
     let st = app.state::<AppState>();
@@ -95,7 +158,7 @@ pub fn show_mini(app: &AppHandle) {
     let w = match r {
         Ok(w) => w,
         Err(e) => {
-            log::error!("falha ao criar a mini: {e}");
+            window_failed(app, "a mini", &e);
             return;
         }
     };

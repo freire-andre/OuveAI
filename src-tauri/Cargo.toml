@@ -19,4 +19,6 @@ tauri-plugin-global-shortcut = "2"
 tauri-plugin-log = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"
+# Já vem com o Tauri; direto só para checar o WebView2 antes de abrir uma janela.
+wry = { version = "=0.57.1", default-features = false }
 windows-sys = { version = "0.61", features = ["Win32_System_Registry", "Win32_Foundation", "Win32_System_Threading", "Win32_System_SystemInformation"] }

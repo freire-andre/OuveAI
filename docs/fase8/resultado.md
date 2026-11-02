@@ -59,3 +59,16 @@ O `clippy` não aponta nada no código das fases (só os 3 avisos antigos do exe
 - **Precisão:** o deslocamento proposto tem a incerteza de um quadro do modelo (±0,04 s).
 - **Deslize** (mudança de velocidade) é apontado, mas não tem correção automática.
 - **Ambiguidade da causa:** a verificação não distingue `position` errado de `in` e `out` deslocados juntos (o efeito no tempo é o mesmo). A proposta prefere `position`.
+
+## Depois da fase: aviso de WebView2 em português
+
+Sem o WebView2 (ou com ele quebrado), nenhuma tela do app abre. O Tauri já mostrava uma caixa genérica em inglês ("Could not find the WebView2 Runtime"), e só depois de cerca de 54 s.
+
+Agora o app checa o WebView2 antes de abrir qualquer janela (principal, assistente e mini). Se ele faltar, a janela não é pedida e aparece na hora uma caixa nativa do Windows em português:
+- explica o que é o WebView2;
+- diz como resolver: instalar ou reparar o "Microsoft Edge WebView2 Runtime", ou pedir ao TI;
+- avisa que nada foi perdido.
+
+Outras falhas ao criar uma janela também mostram uma caixa, com o detalhe e o caminho do log. As caixas não se empilham.
+
+Na Sandbox (que hoje está com o WebView2 inconsistente), a caixa apareceu em 0 s, uma só para dois cliques seguidos, sem a caixa em inglês, e voltou depois de fechada. Com o WebView2 apontado, a janela abriu normalmente.
