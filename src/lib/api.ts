@@ -49,6 +49,8 @@ export interface ModelView {
   has_mirror: boolean;
   /** Para que serve (modelos opcionais). */
   note: string | null;
+  /** Modelo anterior instalado, mas substituído pelo pt-BR. */
+  unused: boolean;
 }
 
 export interface MachineCheck {

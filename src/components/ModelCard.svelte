@@ -57,14 +57,18 @@
   }
 </script>
 
-<article class="card" class:ready={model.state === "ready"}>
+<article class="card" class:ready={model.state === "ready" && !model.unused}>
   <header>
     <div>
       <h3>{model.name}</h3>
       <p class="meta">{mb(model.size)} · licença {model.license}</p>
       {#if model.note}<p class="meta note">{model.note}</p>{/if}
     </div>
-    <span class="badge {model.state}">{model.embedded && model.state === "ready" ? "Vem com o app" : stateLabel[model.state]}</span>
+    {#if model.unused}
+      <span class="badge unused">Não está em uso</span>
+    {:else}
+      <span class="badge {model.state}">{model.embedded && model.state === "ready" ? "Vem com o app" : stateLabel[model.state]}</span>
+    {/if}
   </header>
 
   {#if busy}

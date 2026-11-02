@@ -39,12 +39,15 @@ pub struct ModelView {
     pub has_mirror: bool,
     /// Para que serve (modelos opcionais).
     pub note: Option<String>,
+    /// Modelo anterior (`legacy`) instalado, mas substituído: o pt-BR já está pronto.
+    pub unused: bool,
 }
 
 pub fn list(app: &AppHandle) -> Vec<ModelView> {
     let m = app.state::<Models>();
     let jobs = m.jobs.lock().unwrap();
     let errors = m.errors.lock().unwrap();
+    let ptbr_ready = models::presence(&models::parakeet()) == Presence::Ready;
     models::catalog()
         .into_iter()
         .filter(|spec| !spec.legacy || models::presence(spec) != Presence::Absent || jobs.contains_key(&spec.id))
@@ -65,6 +68,16 @@ pub fn list(app: &AppHandle) -> Vec<ModelView> {
                 (None, Presence::Absent) if partial > 0 => ("paused", None),
                 (None, Presence::Absent) => ("absent", None),
             };
+            let size = spec.files_size();
+            let unused = spec.legacy && state == "ready" && ptbr_ready;
+            let note = if unused {
+                Some(format!(
+                    "O modelo pt-BR já está instalado, então este não é mais usado. Pode apagar para liberar {} MB.",
+                    (size + (1 << 19)) >> 20 // mesmo arredondamento da tela
+                ))
+            } else {
+                spec.note
+            };
             ModelView {
                 state,
                 detail,
@@ -74,12 +87,13 @@ pub fn list(app: &AppHandle) -> Vec<ModelView> {
                 browser_url: spec.archive.as_ref().map(|a| a.url.clone()),
                 // Sem pacote, o download principal já é o espelho: não repete o botão.
                 has_mirror: spec.archive.is_some() && spec.mirror_base.is_some(),
-                size: spec.files_size(),
+                size,
                 embedded: spec.embedded,
                 id: spec.id,
                 name: spec.name,
                 license: spec.license,
-                note: spec.note,
+                note,
+                unused,
             }
         })
         .collect()
