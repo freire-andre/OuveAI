@@ -19,8 +19,8 @@ Quero fazer um piloto de ~2 semanas com ‹3–5› colegas usando o **OuveAI**,
 - Instalador NSIS **por usuário**, sem administrador, em `%LOCALAPPDATA%\OuveAI`.
 - Dados em `%LOCALAPPDATA%\br.com.ouveai`: banco SQLite, modelo (~640 MB), áudio opcional e logs. Nada vai para o perfil Roaming.
 - O instalador **não é assinado** digitalmente. Arquivo e hash desta versão:
-  - `OuveAI_0.9.0_x64-setup.exe` (9,1 MB): https://github.com/freire-andre/OuveAI/releases/tag/v0.9.0
-  - SHA-256: `27e7ec51a8a5d8f88c9af17c32cd9f284b38aa0c6ec542a91c866e4634cf92db`
+  - `OuveAI_0.9.1_x64-setup.exe` (9,3 MB): https://github.com/freire-andre/OuveAI/releases/tag/v0.9.1
+  - SHA-256: `d0d5936b2412bcd8e0f47925f90c2c640cadcca1e1908a17339a5c3fde1b0535`
 
 **Comportamentos que o EDR pode sinalizar (todos esperados)**
 

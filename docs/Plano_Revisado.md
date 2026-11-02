@@ -563,7 +563,7 @@ Se não, parar e decidir com você.
 
 ### Fase 6: Distribuição e piloto · M (era a Fase 8, antecipada)
 
-> **Parte técnica feita em 01/11/2026** ([resultado](fase6/resultado.md), [ADR-005](adr/005-distribuicao-e-atualizacao.md)): instalador 0.9.0, Sobre com licenças, diagnóstico e verificação manual de atualização, guia rápido, mensagem ao TI e formulário. Falta o piloto em si, que depende do retorno do TI. O repositório virou público e a release v0.9.0 saiu em 01/11/2026.
+> **Parte técnica feita em 01/11/2026** ([resultado](fase6/resultado.md), [ADR-005](adr/005-distribuicao-e-atualizacao.md)): instalador 0.9.0, Sobre com licenças, diagnóstico e verificação manual de atualização, guia rápido, mensagem ao TI e formulário. Falta o piloto em si, que depende do retorno do TI. O repositório virou público e a release v0.9.0 saiu em 01/11/2026. A **0.9.1** (02/11/2026) leva o ícone definitivo, as Fases 7 e 8 e o aviso de WebView2, e é a versão que vai para o TI e o piloto.
 
 **Instalador e app**
 - NSIS por usuário, com a estratégia do ADR-003.
