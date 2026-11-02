@@ -377,6 +377,11 @@ export interface UpdateInfo {
   newer: boolean;
 }
 
+export interface UpdatePrefs {
+  auto: boolean;
+  notice: { version: string; url: string } | null;
+}
+
 export interface DataUsage {
   meetings: number;
   files: number;
@@ -464,6 +469,9 @@ export const api = {
   exportDiagnostics: (dest: string) => invoke("export_diagnostics", { dest }),
   checkUpdate: () => invoke<UpdateInfo>("check_update"),
   openRelease: (url: string) => invoke("open_release", { url }),
+  updatePrefs: () => invoke<UpdatePrefs>("update_prefs"),
+  updateSetAuto: (enabled: boolean) => invoke("update_set_auto", { enabled }),
+  updateSkip: (version: string) => invoke("update_skip", { version }),
 };
 
 /** Estado da gravação + falas novas e ecos (eventos `live`, `live-segment`, `live-echo`). */

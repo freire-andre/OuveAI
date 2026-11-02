@@ -97,3 +97,87 @@ pub fn disk_free_bytes(path: &Path) -> Option<u64> {
     let ok = unsafe { GetDiskFreeSpaceExW(wide.as_ptr(), &mut free, std::ptr::null_mut(), std::ptr::null_mut()) };
     (ok != 0).then_some(free)
 }
+
+/// Placa de vídeo dedicada. Só informativa (log e diagnóstico): o S10 mostrou que a GPU não
+/// acelera o Parakeet int8, então a transcrição fica sempre na CPU.
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct Gpu {
+    pub name: String,
+    pub vendor: &'static str,
+    pub vram_mb: u64,
+    /// NVIDIA com o driver instalado (`nvcuda.dll` no System32): pré-requisito do CUDA.
+    pub cuda_driver: bool,
+}
+
+/// Abaixo disso é a fatia reservada de uma placa integrada, não memória dedicada.
+const MIN_DEDICATED_MB: u64 = 512;
+
+fn vendor(id: u32) -> &'static str {
+    match id {
+        0x10DE => "NVIDIA",
+        0x1002 | 0x1022 => "AMD",
+        0x8086 => "Intel",
+        0x1414 => "Microsoft",
+        _ => "outro",
+    }
+}
+
+/// Uma placa conta como dedicada se não for o adaptador de software e tiver memória própria.
+fn dedicated(vendor_id: u32, vram_mb: u64, software: bool) -> bool {
+    !software && vendor_id != 0x1414 && vram_mb >= MIN_DEDICATED_MB
+}
+
+/// Placas de vídeo dedicadas, pelo DXGI. Lista vazia em máquina só com placa integrada ou se
+/// o DXGI falhar (nunca impede o app de abrir).
+pub fn gpus() -> Vec<Gpu> {
+    use windows::Win32::Graphics::Dxgi::{CreateDXGIFactory1, DXGI_ADAPTER_FLAG_SOFTWARE, IDXGIFactory1};
+    let cuda_dll = std::env::var_os("SystemRoot")
+        .map(|r| Path::new(&r).join("System32").join("nvcuda.dll").exists())
+        .unwrap_or(false);
+    let mut out = Vec::new();
+    // SAFETY: chamadas COM do DXGI sem estado compartilhado; os objetos são liberados no drop.
+    let Ok(factory) = (unsafe { CreateDXGIFactory1::<IDXGIFactory1>() }) else {
+        return out;
+    };
+    for i in 0.. {
+        let Ok(adapter) = (unsafe { factory.EnumAdapters1(i) }) else { break };
+        let Ok(d) = (unsafe { adapter.GetDesc1() }) else { continue };
+        let vram_mb = d.DedicatedVideoMemory as u64 / (1024 * 1024);
+        let software = d.Flags & DXGI_ADAPTER_FLAG_SOFTWARE.0 as u32 != 0;
+        if !dedicated(d.VendorId, vram_mb, software) {
+            continue;
+        }
+        let len = d.Description.iter().position(|&c| c == 0).unwrap_or(d.Description.len());
+        let name = String::from_utf16_lossy(&d.Description[..len]).trim().to_string();
+        // O mesmo adaptador pode aparecer duas vezes (uma por saída de vídeo).
+        if out.iter().any(|g: &Gpu| g.name == name) {
+            continue;
+        }
+        out.push(Gpu { name, vendor: vendor(d.VendorId), vram_mb, cuda_driver: d.VendorId == 0x10DE && cuda_dll });
+    }
+    out
+}
+
+#[cfg(test)]
+mod gpu_tests {
+    use super::*;
+
+    #[test]
+    fn so_placa_dedicada_conta() {
+        assert!(dedicated(0x10DE, 8188, false));
+        assert!(dedicated(0x1002, 4096, false));
+        // Integrada com a fatia reservada de 128 MB.
+        assert!(!dedicated(0x8086, 128, false));
+        // Adaptador de software (Microsoft Basic Render Driver).
+        assert!(!dedicated(0x1414, 0, true));
+        assert!(!dedicated(0x10DE, 8188, true));
+    }
+
+    #[test]
+    fn detecta_sem_derrubar() {
+        // Só garante que a chamada real ao DXGI não entra em pânico nesta máquina.
+        let g = gpus();
+        assert!(g.iter().all(|g| g.vram_mb >= MIN_DEDICATED_MB));
+    }
+}
+

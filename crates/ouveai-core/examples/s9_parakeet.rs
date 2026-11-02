@@ -5,7 +5,10 @@
 //!
 //! Uso:
 //!   cargo run --release -p ouveai-core --example s9_parakeet -- <dir_modelo> <wav 16 kHz mono>
-//!       [--chunk 60] --out saida.json
+//!       [--chunk 60] [--provider cpu|cuda] --out saida.json
+//!
+//! S10 (GPU): `--provider cuda` só funciona num build ligado às bibliotecas CUDA do sherpa-onnx
+//! (`SHERPA_ONNX_LIB_DIR` + feature `shared`); no build normal (estático, CPU) ele cai na CPU.
 
 use ouveai_core::{asr, media, words};
 use sherpa_onnx::{OfflineRecognizer, OfflineRecognizerConfig, OfflineTransducerModelConfig, Wave};
@@ -20,6 +23,7 @@ fn main() {
     let (dir, wav_path) = (&args[1], &args[2]);
     let chunk: f64 = arg(&args, "--chunk").map_or(media::CHUNK_MAX, |c| c.parse().expect("--chunk N"));
     let out = arg(&args, "--out").expect("--out saida.json");
+    let provider = arg(&args, "--provider").unwrap_or_else(|| "cpu".into());
     let threads = asr::file_threads();
 
     let wave = Wave::read(wav_path).expect("falha ao ler o WAV");
@@ -40,7 +44,7 @@ fn main() {
     cfg.model_config.tokens = f("tokens.txt");
     cfg.model_config.model_type = Some("nemo_transducer".into());
     cfg.model_config.num_threads = threads;
-    cfg.model_config.provider = Some("cpu".into());
+    cfg.model_config.provider = Some(provider.clone());
     cfg.decoding_method = Some("greedy_search".into());
     let t = Instant::now();
     let rec = OfflineRecognizer::create(&cfg).expect("falha ao carregar o modelo");
@@ -64,7 +68,7 @@ fn main() {
     println!("{} pedaços · carga {load_s:.1} s · {duration:.1} s em {secs:.2} s ({:.1}× tempo real)", chunks.len(), duration / secs);
     let text = texts.join(" ");
     let doc = serde_json::json!({
-        "modelo": dir, "chunk": chunk, "secs": secs, "audio_s": duration,
+        "modelo": dir, "chunk": chunk, "provider": provider, "secs": secs, "audio_s": duration,
         "pedacos": chunks.iter().map(|c| [c.start, c.end]).collect::<Vec<_>>(),
         "texto": text,
         "palavras": starts,

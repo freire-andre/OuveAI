@@ -563,7 +563,7 @@ Se não, parar e decidir com você.
 
 ### Fase 6: Distribuição e piloto · M (era a Fase 8, antecipada)
 
-> **Parte técnica feita em 01/11/2026** ([resultado](fase6/resultado.md), [ADR-005](adr/005-distribuicao-e-atualizacao.md)): instalador 0.9.0, Sobre com licenças, diagnóstico e verificação manual de atualização, guia rápido, mensagem ao TI e formulário. Falta o piloto em si, que depende do retorno do TI. O repositório virou público e a release v0.9.0 saiu em 01/11/2026. A **0.9.1** (02/11/2026) leva o ícone definitivo, as Fases 7 e 8 e o aviso de WebView2. A **0.9.2** (02/11/2026) troca o modelo de fala pelo ajuste pt-BR do Parakeet ([ADR-009](adr/009-parakeet-ptbr.md)), melhora a comparação com o Whisper e descarta o Nemotron ([ADR-008](ADR-008-substituicao-whisper-por-nemotron.md)); é a versão que vai para o TI e o piloto.
+> **Parte técnica feita em 01/11/2026** ([resultado](fase6/resultado.md), [ADR-005](adr/005-distribuicao-e-atualizacao.md)): instalador 0.9.0, Sobre com licenças, diagnóstico e verificação manual de atualização, guia rápido, mensagem ao TI e formulário. Falta o piloto em si, que depende do retorno do TI. O repositório virou público e a release v0.9.0 saiu em 01/11/2026. A **0.9.1** (02/11/2026) leva o ícone definitivo, as Fases 7 e 8 e o aviso de WebView2. A **0.9.2** (02/11/2026) troca o modelo de fala pelo ajuste pt-BR do Parakeet ([ADR-009](adr/009-parakeet-ptbr.md)), melhora a comparação com o Whisper e descarta o Nemotron ([ADR-008](ADR-008-substituicao-whisper-por-nemotron.md)). A **0.9.3** traz o aviso opcional de versão nova; a transcrição pela placa de vídeo foi medida e descartada ([S10](fase0/s10-gpu.md)). É a versão que vai para o TI e o piloto.
 
 **Instalador e app**
 - NSIS por usuário, com a estratégia do ADR-003.
@@ -727,7 +727,7 @@ settings(key TEXT PRIMARY KEY, value TEXT)   -- valor em JSON
 | **D2** | Áudio da reunião: padrão **"não salvar"**, com opções "manter 7 dias", "30 dias" e "sempre" | **Não salvar por padrão**: menos disco, menos dado pessoal (voz). Sem áudio, não dá para clicar e ouvir nem usar a Parte 4 em reunião |
 | **D3** | Atalhos padrão `Ctrl+Alt+Shift+O` (mini), `+R` (gravar), `+M` (marcar) | **Sim**, configuráveis |
 | **D4** | Distribuição do piloto: falar com o TI antes do piloto? Assinar o instalador? | **Falar com o TI antes.** Assinar só se o TI exigir ou se o SmartScreen/EDR bloquear no piloto (tem custo anual). Sem assinatura, publicar o SHA-256. **✅ Aceita em 01/11/2026 (ADR-005)** |
-| **D5** | Atualizações na v1.0 | **Sem updater automático.** Botão manual "verificar atualização" (opt-in, única chamada de rede extra) ou só instruções no guia. **✅ Botão manual, em 01/11/2026 (ADR-005)** |
+| **D5** | Atualizações na v1.0 | **Sem updater automático.** Botão manual "verificar atualização" (opt-in, única chamada de rede extra) ou só instruções no guia. **✅ Botão manual, em 01/11/2026 (ADR-005)**; na 0.9.3, aviso opcional (desligado por padrão), no máximo uma consulta por dia |
 | **D6** | Requisitos mínimos: Windows 10 2004+ x64, 8 GB de RAM; ARM64 fora | **Sim** |
 | **D7** | Modo "Por aplicativo" (loopback por processo, Win11) na v1.0 | **Só se o spike S3(e) for simples.** Se não, fica para a v1.1, e o modo Automático com dois papéis já cobre os casos principais |
 

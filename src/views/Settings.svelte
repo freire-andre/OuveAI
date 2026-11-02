@@ -54,6 +54,12 @@
 
   // Sobre: verificar atualização (manual, D5) e exportar diagnóstico.
   let upd = $state<{ busy: boolean; info: UpdateInfo | null; err: string }>({ busy: false, info: null, err: "" });
+  let autoUpdate = $state(false);
+  api.updatePrefs().then((p) => (autoUpdate = p.auto)).catch(() => {});
+  async function setAutoUpdate(on: boolean) {
+    autoUpdate = on;
+    await api.updateSetAuto(on);
+  }
   async function checkUpdate() {
     upd = { busy: true, info: null, err: "" };
     try {
@@ -181,7 +187,7 @@
 
 <section>
   <h2>Rede</h2>
-  <p class="hint">O OuveAI só usa a internet para baixar o modelo e o FFmpeg (sempre com a sua confirmação) e, quando você clica em "Verificar atualização", para consultar a última versão. Nenhuma transcrição ou áudio sai deste computador. Normalmente o proxy do Windows basta; preencha só se o download falhar na rede da empresa.</p>
+  <p class="hint">O OuveAI só usa a internet para baixar o modelo e o FFmpeg (sempre com a sua confirmação) e para consultar a última versão, quando você clica em "Verificar atualização" ou, se ligar o aviso de versão nova (em Sobre), uma vez por dia. Nenhuma transcrição ou áudio sai deste computador. Normalmente o proxy do Windows basta; preencha só se o download falhar na rede da empresa.</p>
   <form class="proxy" onsubmit={(e) => { e.preventDefault(); saveProxy(); }}>
     <label for="proxy">Proxy manual</label>
     <input id="proxy" type="text" placeholder="http://servidor:porta" bind:value={proxy} spellcheck="false" />
@@ -239,6 +245,14 @@
     <dt>Dados locais</dt>
     <dd class="mono">{status.data_dir}</dd>
   </dl>
+
+  <label class="row spaced">
+    <input type="checkbox" checked={autoUpdate} onchange={(e) => setAutoUpdate(e.currentTarget.checked)} />
+    <span>
+      <strong>Avisar quando sair uma versão nova</strong>
+      <span class="hint">Ao abrir, o OuveAI consulta o GitHub no máximo uma vez por dia e mostra um aviso se houver versão mais nova. Nada é baixado nem instalado sozinho.</span>
+    </span>
+  </label>
 
   <div class="actions spaced">
     <button class="btn" onclick={checkUpdate} disabled={upd.busy}>{upd.busy ? "Verificando…" : "Verificar atualização"}</button>

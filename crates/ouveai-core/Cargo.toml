@@ -19,6 +19,7 @@ sherpa-onnx = { version = "2.0.1", default-features = false }
 similar = { version = "3.2.1", default-features = false, features = ["std"] }
 tar = "0.4.46"
 ureq = { version = "3.5.0", default-features = false, features = ["rustls", "platform-verifier", "win-system-proxy"] }
+windows = { version = "0.62.2", features = ["Win32_Graphics_Dxgi"] }
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_Security_Cryptography",

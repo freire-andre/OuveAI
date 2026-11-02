@@ -19,8 +19,8 @@ Quero fazer um piloto de ~2 semanas com ‹3–5› colegas usando o **OuveAI**,
 - Instalador NSIS **por usuário**, sem administrador, em `%LOCALAPPDATA%\OuveAI`.
 - Dados em `%LOCALAPPDATA%\br.com.ouveai`: banco SQLite, modelo (~640 MB), áudio opcional e logs. Nada vai para o perfil Roaming.
 - O instalador **não é assinado** digitalmente. Arquivo e hash desta versão:
-  - `OuveAI_0.9.2_x64-setup.exe` (9,4 MB): https://github.com/freire-andre/OuveAI/releases/tag/v0.9.2
-  - SHA-256: `e4c44a1efb7466731a01815d5696247cd0842264d2c3ace5be25b063bac2203d`
+  - `OuveAI_0.9.3_x64-setup.exe` (9,4 MB): https://github.com/freire-andre/OuveAI/releases/tag/v0.9.3
+  - SHA-256: `19b5a1a3c0ccd6950af98ca057229de7a8ed6c849635804f1eece68933223cab`
 
 **Comportamentos que o EDR pode sinalizar (todos esperados)**
 
@@ -40,7 +40,7 @@ Ele **não** se inicia com o Windows, **não** instala serviço nem driver e **n
 |---|---|
 | `github.com`, `objects.githubusercontent.com`, `release-assets.githubusercontent.com` | Download do modelo (uma vez, confirmado pelo usuário) e do FFmpeg (opcional, só para importar arquivos de vídeo) |
 | `huggingface.co` e a CDN dele (`*.cdn.hf.co`) | Alternativa para o download do modelo |
-| `api.github.com` | "Verificar atualização", **só quando o usuário clica** |
+| `api.github.com` | "Verificar atualização", quando o usuário clica. Se ele ligar o aviso de versão nova (desligado por padrão), também ao abrir o app, **no máximo uma vez por dia** |
 | `go.microsoft.com` / Microsoft Edge Update | Instalar o WebView2, só se a máquina não tiver |
 
 Fora isso, não há telemetria nem chamada de rede. Sem internet, o app funciona normalmente depois que o modelo é instalado; o modelo também pode ser importado de um arquivo local.

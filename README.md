@@ -243,7 +243,7 @@ As decisões técnicas estão em [`docs/adr/`](docs/adr) e o plano completo em [
 | 3 | Transcrição de arquivo, legenda `.srt` e editor | ✅ |
 | 4 | Captura ao vivo, mini janela e sessões | ✅ |
 | 5 | Histórico, busca sem acento, copiar em Markdown, exportar | ✅ |
-| 6 | Instalador final, tela de licenças, diagnóstico, piloto | 🧪 piloto (0.9.2) |
+| 6 | Instalador final, tela de licenças, diagnóstico, piloto | 🧪 piloto (0.9.3) |
 | 7 | Comparação com Whisper (opcional) | ✅ |
 | 8 | Legenda de vídeo editado (EDL) | ✅ |
 

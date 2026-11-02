@@ -665,6 +665,9 @@ fn main() {
             edl_dismiss,
             edl_apply,
             diag::check_update,
+            diag::update_prefs,
+            diag::update_set_auto,
+            diag::update_skip,
             diag::open_release,
             get_status,
             set_stealth,
@@ -727,6 +730,15 @@ fn main() {
                 app.package_info().version,
                 if stealth { "ligado" } else { "desligado" }
             );
+            std::thread::spawn(|| {
+                let gpus = ouveai_core::sys::gpus();
+                if gpus.is_empty() {
+                    log::info!("placa de vídeo dedicada: nenhuma");
+                }
+                for g in gpus {
+                    log::info!("placa de vídeo dedicada: {} ({}, {} MB, driver CUDA {})", g.name, g.vendor, g.vram_mb, g.cuda_driver);
+                }
+            });
             tray::create(app)?;
             shortcuts::register_all(app.handle());
             std::thread::spawn(models::ensure_embedded);
@@ -736,9 +748,15 @@ fn main() {
             purge_expired(app.handle());
             let h = app.handle().clone();
             std::thread::spawn(move || {
+                // Aviso de versão nova (opcional): 30 s depois de abrir, para não pesar na
+                // inicialização, e de novo a cada hora (a regra das 24 h fica no auto_check),
+                // porque o app costuma ficar dias na bandeja.
+                std::thread::sleep(std::time::Duration::from_secs(30));
+                diag::auto_check(&h);
                 loop {
                     std::thread::sleep(std::time::Duration::from_secs(3600));
                     purge_expired(&h);
+                    diag::auto_check(&h);
                 }
             });
             if orphans > 0 {

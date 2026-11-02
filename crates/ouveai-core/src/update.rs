@@ -1,12 +1,13 @@
-//! Verificação manual de atualização (D5): uma consulta ao GitHub Releases, só quando a
-//! pessoa clica. Nada é baixado nem instalado aqui; o app só abre a página da versão.
+//! Verificação de atualização (D5): uma consulta ao GitHub Releases quando a pessoa clica ou,
+//! se ela ligar "Avisar quando sair versão nova" (0.9.3), ao abrir o app, no máximo uma vez
+//! a cada 24 h. Nada é baixado nem instalado aqui; o app só abre a página da versão.
 
 use crate::net::{NetConfig, NetError, agent};
 
 /// Repositório público onde saem os instaladores.
 pub const REPO: &str = "freire-andre/OuveAI";
 
-#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Release {
     /// Sem o "v" da tag (ex.: "0.9.1").
     pub version: String,
@@ -45,6 +46,24 @@ fn parse(body: &str) -> Option<Release> {
     Some(Release { version: tag.trim_start_matches(['v', 'V']).to_string(), url: url.to_string() })
 }
 
+/// Intervalo mínimo entre verificações automáticas.
+pub const AUTO_INTERVAL_SECS: u64 = 24 * 3600;
+
+/// Já passou o intervalo desde a última verificação automática? Relógio que voltou no
+/// tempo (`now < last`) conta como vencido, para não ficar dias sem verificar.
+pub fn due(last_check: Option<u64>, now: u64) -> bool {
+    match last_check {
+        None => true,
+        Some(t) => now < t || now - t >= AUTO_INTERVAL_SECS,
+    }
+}
+
+/// O aviso a mostrar: a última versão, se for mais nova que a instalada e não for a que a
+/// pessoa mandou ignorar.
+pub fn notice(latest: Option<&Release>, current: &str, skipped: Option<&str>) -> Option<Release> {
+    latest.filter(|l| is_newer(&l.version, current) && skipped != Some(l.version.as_str())).cloned()
+}
+
 /// `candidate` é mais nova que `current`? Compara os números (1.10 > 1.9); um sufixo
 /// ("-beta") vale menos que a versão sem sufixo.
 pub fn is_newer(candidate: &str, current: &str) -> bool {
@@ -66,6 +85,30 @@ pub fn is_newer(candidate: &str, current: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn rel(v: &str) -> Release {
+        Release { version: v.into(), url: format!("https://github.com/{REPO}/releases/tag/v{v}") }
+    }
+
+    #[test]
+    fn verificacao_automatica_uma_vez_por_dia() {
+        assert!(due(None, 1_000));
+        assert!(!due(Some(1_000), 1_000 + AUTO_INTERVAL_SECS - 1));
+        assert!(due(Some(1_000), 1_000 + AUTO_INTERVAL_SECS));
+        // Relógio voltou no tempo: verifica de novo.
+        assert!(due(Some(1_000), 999));
+    }
+
+    #[test]
+    fn aviso_so_para_versao_nova_e_nao_ignorada() {
+        assert_eq!(notice(Some(&rel("0.9.4")), "0.9.3", None), Some(rel("0.9.4")));
+        assert_eq!(notice(Some(&rel("0.9.3")), "0.9.3", None), None);
+        assert_eq!(notice(Some(&rel("0.9.2")), "0.9.3", None), None);
+        assert_eq!(notice(Some(&rel("0.9.4")), "0.9.3", Some("0.9.4")), None);
+        // Ignorar a 0.9.4 não esconde a 0.9.5.
+        assert_eq!(notice(Some(&rel("0.9.5")), "0.9.3", Some("0.9.4")), Some(rel("0.9.5")));
+        assert_eq!(notice(None, "0.9.3", None), None);
+    }
 
     #[test]
     fn compara_versoes() {

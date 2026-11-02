@@ -14,7 +14,12 @@
    - compara a versão e, se houver uma mais nova, abre a página da versão no navegador;
    - não baixa nem instala nada, e só abre links do próprio repositório.
 
-   Sem updater automático: não há chave de assinatura das atualizações para guardar, nem chamada de rede periódica, e a lista do que sai da máquina (seção 6.7) continua fechada.
+   Sem updater automático: não há chave de assinatura das atualizações para guardar, e a lista do que sai da máquina (seção 6.7) continua fechada.
+
+   **Aviso de versão nova (0.9.3, opcional):** em Configurações › Sobre, "Avisar quando sair uma versão nova", **desligado por padrão**.
+   - Ligado, o app faz a mesma consulta 30 s depois de abrir e, enquanto estiver na bandeja, de hora em hora, mas só quando já passaram 24 h desde a última (`update::due`). Na prática, é no máximo uma consulta por dia, com sucesso ou não.
+   - Se houver versão mais nova, uma faixa na janela principal oferece **Abrir página de download** e **Ignorar esta versão**. Ignorar esconde o aviso até sair uma versão mais nova que essa (`update::notice`).
+   - Continua sem baixar nem instalar nada. A falha de rede vai só para o log.
 3. **Instalador NSIS**, por usuário, sem administrador.
    - **SO mínimo (D6):** o gancho `NSIS_HOOK_PREINSTALL` recusa builds anteriores ao 19041, com uma mensagem clara.
    - **Desinstalador:** a caixa padrão do Tauri apaga `%LOCALAPPDATA%\br.com.ouveai` (reuniões, áudio, modelo, logs e o perfil do WebView2). O texto da caixa virou "Apagar também reuniões, áudios e o modelo baixado". Ela vem desmarcada, e uma desinstalação silenciosa mantém os dados.
@@ -26,4 +31,4 @@
    - mais os logs.
 
    Sem texto, áudio, títulos ou nomes de arquivo (regra 8). O zip é gravado num `.part` e renomeado, então uma falha não deixa um arquivo pela metade.
-5. **Versão do piloto: 0.9.0.** A 1.0.0 sai quando o piloto cumprir os critérios de saída. Em 02/11/2026 saiu a 0.9.1, ainda antes do piloto, com o ícone definitivo, as Partes 4 e 5 e o aviso de WebView2 em português. No mesmo dia, a 0.9.2 trocou o modelo de fala pelo ajuste pt-BR do Parakeet (ADR-009) e melhorou a comparação com o Whisper.
+5. **Versão do piloto: 0.9.0.** A 1.0.0 sai quando o piloto cumprir os critérios de saída. Em 02/11/2026 saiu a 0.9.1, ainda antes do piloto, com o ícone definitivo, as Partes 4 e 5 e o aviso de WebView2 em português. No mesmo dia, a 0.9.2 trocou o modelo de fala pelo ajuste pt-BR do Parakeet (ADR-009) e melhorou a comparação com o Whisper. A 0.9.3 trouxe o aviso opcional de versão nova; o uso da placa de vídeo foi medido e descartado (S10).
