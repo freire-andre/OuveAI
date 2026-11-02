@@ -136,7 +136,7 @@ pub fn diverge(parakeet: &[Word], whisper: &[String]) -> Vec<Divergence> {
 }
 
 /// Aplica as escolhas do Whisper: troca as palavras de cada trecho pelas do Whisper,
-/// distribuídas no mesmo intervalo de tempo, proporcionalmente ao tamanho de cada uma.
+/// nos tempos medidos do Parakeet (ver `measured`).
 /// `chosen` não pode ter trechos sobrepostos.
 pub fn apply(words: &[Word], chosen: &[Divergence]) -> Vec<Word> {
     let mut chosen: Vec<&Divergence> = chosen.iter().collect();
@@ -148,26 +148,27 @@ pub fn apply(words: &[Word], chosen: &[Divergence]) -> Vec<Word> {
             continue; // sobreposto ou inválido
         }
         out.extend_from_slice(&words[i..d.from]);
-        out.extend(spread(&split_words(&d.whisper), words[d.from].start, words[d.to - 1].end));
+        out.extend(measured(&words[d.from..d.to], &split_words(&d.whisper)));
         i = d.to;
     }
     out.extend_from_slice(&words[i..]);
     out
 }
 
-fn spread(ws: &[String], start: f64, end: f64) -> Vec<Word> {
-    let weight = |w: &String| w.chars().count().max(1) as f64;
-    let total: f64 = ws.iter().map(weight).sum();
-    let mut t = start;
-    ws.iter()
-        .enumerate()
-        .map(|(k, w)| {
-            let e = if k + 1 == ws.len() { end } else { t + (end - start) * weight(w) / total };
-            let word = Word { word: w.clone(), start: crate::words::ms(t), end: crate::words::ms(e) };
-            t = e;
-            word
-        })
-        .collect()
+/// Põe o texto do Whisper nos tempos medidos das palavras do Parakeet que ele substitui,
+/// sem inventar tempo (regra do prompt: tempo sempre medido, nunca interpolado).
+/// - Mesma quantidade de palavras: cada uma fica com o tempo da que substitui.
+/// - Quantidade diferente: o trecho vira uma unidade só ("começar logo"), com o início da
+///   primeira e o fim da última palavra substituída. A legenda nunca quebra uma unidade.
+/// - Nada do Whisper: as palavras somem.
+fn measured(old: &[Word], ws: &[String]) -> Vec<Word> {
+    if ws.is_empty() || old.is_empty() {
+        return Vec::new();
+    }
+    if ws.len() == old.len() {
+        return old.iter().zip(ws).map(|(o, w)| Word { word: w.clone(), start: o.start, end: o.end }).collect();
+    }
+    vec![Word { word: ws.join(" "), start: old[0].start, end: old[old.len() - 1].end }]
 }
 
 // ---------- execução do Whisper ----------
@@ -275,10 +276,10 @@ fn diverge_into(out: &mut Outcome, slice: &[Word], ws: &[String], offset: usize,
     }));
 }
 
-/// As palavras do Whisper de um trecho escolhido, com os tempos distribuídos no
-/// intervalo das palavras do Parakeet que elas substituem.
+/// As palavras do Whisper de um trecho escolhido, nos tempos medidos das palavras do
+/// Parakeet que elas substituem (ver `measured`).
 pub fn whisper_words(words: &[Word], d: &Divergence) -> Vec<Word> {
-    spread(&split_words(&d.whisper), words[d.from].start, words[d.to - 1].end)
+    measured(&words[d.from..d.to], &split_words(&d.whisper))
 }
 
 /// Trechos de até `max` s (no máximo 30, o limite do Whisper) para o Whisper, cortados no
@@ -473,14 +474,18 @@ mod tests {
         assert_eq!((out[1].start, out[1].end), (1.0, 2.8));
         assert!(out.windows(2).all(|x| x[0].end <= x[1].start + 1e-9));
 
-        // Duas palavras no lugar de uma: dividem o tempo pelo tamanho.
+        // Duas palavras no lugar de uma: viram uma unidade com o tempo medido, sem fronteira inventada.
         let p = ws("vamos começar agora");
         let d = diverge(&p, &wh("vamos começar logo agora"));
         let out = apply(&p, &d);
-        assert_eq!(out.len(), 4);
-        assert_eq!(out[1].start, 1.0);
-        assert_eq!(out[2].end, 1.8);
-        assert!((out[1].end - (1.0 + 0.8 * 7.0 / 11.0)).abs() < 0.001);
+        assert_eq!(out.len(), 3);
+        assert_eq!((out[1].word.as_str(), out[1].start, out[1].end), ("começar logo", p[1].start, p[1].end));
+
+        // Mesma quantidade: cada palavra fica com o tempo da que substitui.
+        let p = ws("a reunion de but foi");
+        let out = apply(&p, &diverge(&p, &wh("a reunião de mas foi")));
+        assert!(out.iter().zip(&p).all(|(a, b)| a.start == b.start && a.end == b.end));
+        assert_eq!(out[1].word, "reunião");
 
         // Escolher "nada" do Whisper apaga a palavra.
         let p = ws("isso isso aqui");

@@ -9,7 +9,7 @@ Data: 01/11/2026 · decisões em [ADR-006](../adr/006-comparacao-whisper.md)
   - O Whisper roda em janelas de 20 s cortadas em silêncio.
   - O alinhamento palavra a palavra usa o crate `similar`, com formas coloquiais e muletas tratadas como iguais.
   - Janelas em que o Whisper entra em laço, inventa ou engole fala são descartadas.
-  - O texto escolhido é distribuído nos tempos do Parakeet.
+  - O texto escolhido fica com os tempos medidos do Parakeet. Com número diferente de palavras, o trecho vira uma unidade com o início e o fim medidos, sem fronteira inventada (corrigido em 02/11/2026).
 - **CLI:** `ouveai-cli compare <arquivo> [--json saida.json] [--chunk N]` mostra a velocidade dos dois modelos, os trechos descartados e as divergências.
 - **Tela "Comparar com o Whisper"** no editor de arquivos e nas reuniões com áudio salvo.
   - Cada trecho divergente aparece lado a lado: Parakeet (atual) | Whisper.

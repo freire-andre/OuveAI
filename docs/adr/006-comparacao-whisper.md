@@ -27,7 +27,12 @@
    - o Whisper tem menos da metade (com 8 palavras ou mais no Parakeet), sinal de que engoliu fala.
 
    A tela diz em quais trechos isso aconteceu.
-5. **Tempos sempre do Parakeet.** O texto do Whisper escolhido é distribuído no intervalo das palavras que ele substitui, proporcionalmente ao número de letras. O Whisper não mede o tempo de cada palavra.
+5. **Tempos sempre do Parakeet, e só medidos.** O Whisper não mede o tempo de cada palavra, e o prompt proíbe interpolar. Por isso:
+   - Com o mesmo número de palavras, cada palavra do Whisper fica com o tempo da que substitui.
+   - Com número diferente, o trecho vira uma unidade só ("começar logo"), com o início da primeira e o fim da última palavra substituída. A legenda nunca quebra uma unidade.
+   - Escolher "(apagar)" remove as palavras.
+
+   Uma primeira versão distribuía o texto proporcionalmente às letras, mas foi trocada por inventar fronteiras.
 6. **Reunião: só com o áudio salvo (D2), segmento a segmento.**
    - Cada segmento é comparado com o trecho do `eu.wav` ou do `outros.wav` correspondente, com 0,25 s de folga de cada lado.
    - Ecos ficam de fora, e segmentos de mais de 30 s são pulados.
