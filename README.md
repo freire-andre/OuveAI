@@ -12,7 +12,7 @@ O áudio não sai do seu computador: sem nuvem, sem conta, sem telemetria.</p>
   <img alt="Tauri v2" src="https://img.shields.io/badge/Tauri-v2-24C8DB?logo=tauri&logoColor=white">
   <img alt="Rust" src="https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white">
   <img alt="Svelte 5" src="https://img.shields.io/badge/Svelte-5-FF3E00?logo=svelte&logoColor=white">
-  <img alt="Parakeet TDT v3" src="https://img.shields.io/badge/ASR-Parakeet%20TDT%20v3-1F6FEB">
+  <img alt="Parakeet TDT v3 pt-BR" src="https://img.shields.io/badge/ASR-Parakeet%20TDT%20v3%20pt--BR-1F6FEB">
   <img alt="Status" src="https://img.shields.io/badge/status-piloto-F2A600">
 </p>
 
@@ -63,7 +63,7 @@ O áudio não sai do seu computador: sem nuvem, sem conta, sem telemetria.</p>
         <li>editor com os trechos suspeitos destacados</li>
         <li><b>comparar com o Whisper</b> (opcional): mostra lado a lado só os trechos em que os dois modelos discordam, e você escolhe</li>
         <li><b>legenda de vídeo editado</b>: a partir dos brutos transcritos e de um <code>edl.json</code> com os cortes, com verificação no vídeo final</li>
-        <li>cerca de <b>13× mais rápido</b> que o tempo real numa CPU comum</li>
+        <li>cerca de <b>15× mais rápido</b> que o tempo real numa CPU comum (1 h de áudio em uns 4 min)</li>
       </ul>
     </td>
   </tr>
@@ -106,16 +106,19 @@ O áudio não sai do seu computador: sem nuvem, sem conta, sem telemetria.</p>
   </tr>
 </table>
 
-> [!NOTE]
-> O OuveAI **transcreve**. Resumo e ata gerados por IA estão fora do escopo atual, porque exigiriam nuvem ou um modelo bem maior rodando na máquina.
+> [!IMPORTANT]
+> **Por que o OuveAI não gera resumo nem ata?**
+> Reuniões costumam ter dados pessoais e informações internas da empresa. Por isso, o OuveAI segue os princípios da LGPD (Lei 13.709/2018), sobretudo os de necessidade e segurança: **tudo é processado no seu computador, e nenhuma transcrição ou áudio é enviado a servidores.**
+>
+> Resumos e atas gerados por IA exigiriam mandar o texto da reunião para um serviço na nuvem, ou rodar um modelo grande demais para um notebook comum. Por isso, ficaram de fora de propósito. Se quiser um resumo, copie a transcrição (em **Sessões › Copiar transcrição**, em Markdown) e leve-a para a ferramenta que a sua empresa autorizar. A decisão de compartilhar fica sempre com você.
 
 ---
 
 ## 🔒 Privacidade
 
 <table>
-  <tr><td>💻</td><td><b>Tudo roda na sua máquina.</b> O reconhecimento de fala usa um modelo local; nada é enviado para servidor nenhum.</td></tr>
-  <tr><td>🌐</td><td><b>A rede só é usada para baixar o modelo e o FFmpeg</b>, uma vez, com o SHA-256 conferido. Dá também para baixar pelo navegador e importar o arquivo.</td></tr>
+  <tr><td>💻</td><td><b>Tudo roda na sua máquina.</b> O reconhecimento de fala usa um modelo local, ajustado para o português do Brasil. Nenhuma transcrição ou áudio é enviado para servidor nenhum.</td></tr>
+  <tr><td>🌐</td><td><b>A rede só é usada para baixar componentes</b> (o modelo de fala e, se você quiser, o FFmpeg e o Whisper), uma vez e com o SHA-256 conferido, <b>e para ver se há versão nova</b>: quando você clica em "Verificar atualização" ou, se ligar o aviso, no máximo uma vez por dia. Dá para baixar os componentes pelo navegador e importar o arquivo.</td></tr>
   <tr><td>📝</td><td><b>Os logs não guardam o que foi dito</b>: nem texto transcrito, nem títulos de reunião, nem nomes de arquivo. Só tempos, contagens e nomes de dispositivo.</td></tr>
   <tr><td>📂</td><td><b>Os dados ficam em <code>%LOCALAPPDATA%</code></b>, fora do perfil móvel da empresa. Apagar uma sessão apaga o texto e o áudio.</td></tr>
 </table>
@@ -129,7 +132,7 @@ O áudio não sai do seu computador: sem nuvem, sem conta, sem telemetria.</p>
 | Sistema | Windows 10 2004 (build 19041) ou mais novo, x64 |
 | Memória | 8 GB de RAM (o app usa ~900 MB gravando) |
 | CPU | 4 núcleos (~2–3% de CPU numa reunião, num Ryzen 5 5600X) |
-| Disco | 2 GB livres (modelo de ~640 MB + áudios, se você guardar) |
+| Disco | 2 GB livres (modelo de ~640 MB + áudios, se você guardar). A comparação com o Whisper, opcional, usa mais ~1 GB |
 | Permissões | **Não precisa de administrador.** Instala só para o seu usuário. |
 
 O instalador não exige o VC++ Redistributable: o motor de reconhecimento vai linkado no próprio executável.
@@ -146,9 +149,11 @@ O instalador não exige o VC++ Redistributable: o motor de reconhecimento vai li
    - testa o microfone e o som do computador;
    - mostra os atalhos.
 3. Quando a reunião começar, aperte <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>. A mini janela abre e o texto vai aparecendo.
-4. Aperte de novo para parar. A reunião fica salva em **Sessões**.
+4. Aperte de novo para parar. A reunião fica salva em **Sessões**, de onde dá para copiar ou exportar.
 
-Para legendar um vídeo, use **Importar arquivo** na janela principal.
+Para transcrever ou legendar um áudio ou vídeo, abra **Arquivos** na janela principal e escolha o arquivo (ou arraste para lá). A legenda de um vídeo editado fica em **Legendas**.
+
+Para ser avisado quando sair uma versão nova, ligue a opção em **Configurações › Sobre**. Ela vem desligada.
 
 ---
 
@@ -177,7 +182,7 @@ Na primeira compilação, o crate `sherpa-onnx` baixa a biblioteca estática (~1
 **CLI** (para testes e uso técnico)
 
 ```powershell
-cargo run -p ouveai-cli --release -- models download parakeet-tdt-0.6b-v3-int8
+cargo run -p ouveai-cli --release -- models download parakeet-tdt-0.6b-v3-ptbr-int8
 cargo run -p ouveai-cli --release -- transcribe caminho\do\audio.mp4
 cargo run -p ouveai-cli --release -- edl-subs edl.json --check final.mp4   # legenda do vídeo editado + verificação
 cargo run -p ouveai-cli --release -- live --help     # replay de dois WAVs no pipeline ao vivo
@@ -258,6 +263,7 @@ O OuveAI usa estes projetos abertos:
 - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx): motor de inferência, Apache-2.0
 - [ONNX Runtime](https://github.com/microsoft/onnxruntime): MIT
 - [Silero VAD](https://github.com/snakers4/silero-vad): detecção de voz, MIT
+- [Whisper large-v3 turbo](https://github.com/openai/whisper) (OpenAI), opcional, usado só na comparação: MIT
 - [Tauri](https://tauri.app), [Svelte](https://svelte.dev) e o crate [`wasapi`](https://github.com/HEnquist/wasapi-rs)
 - [FFmpeg](https://ffmpeg.org) (baixado à parte, build da gyan.dev, GPL-3.0), usado só para importar arquivos
 
