@@ -1,6 +1,6 @@
 # ADR-008 — Substituição do Whisper pelo Nemotron 3.5 ASR Streaming 0.6b na comparação
 
-**Status:** Proposto — aguardando decisão do responsável  
+**Status:** Rejeitado em 02/11/2026 (ver o fim do documento)  
 **Data:** 2026-11-02  
 **Escopo:** Parte 4 / Fase 7 — comparação opcional de trechos duvidosos  
 **Modelo principal mantido:** Parakeet TDT 0.6b v3 int8  
@@ -470,3 +470,18 @@ A troca pode ser considerada pronta quando:
 **Não adotá-lo como ASR principal nesta etapa.** O Parakeet TDT 0.6b v3 int8 permanece como motor principal por já estar integrado, validado no fluxo do OuveAI e responsável pelos timestamps usados em todo o produto.
 
 A troca deve ser implementada somente após o **spike S8**, com validação real de compatibilidade, artefato, licença, RAM, CPU, timestamps e qualidade em pt-BR.
+
+---
+
+## Decisão final (02/11/2026): rejeitado
+
+O spike [S8](fase0/s8-nemotron-revisor.md) testou o Nemotron 3.5 ASR Streaming 0.6b no sherpa-onnx, com as mesmas janelas do app (cortadas no silêncio), em um vídeo narrado e em uma conversa a duas vozes. Resultado:
+
+- O **Whisper large-v3-turbo foi mais preciso** como revisor. No vídeo narrado, 5 sugestões certas e nenhuma errada, contra 5 certas e 3 erradas do Nemotron na melhor configuração (stream contínuo, 1,5 s de silêncio inicial e corte por confiança).
+- Com `pt-BR`, o Nemotron sai sem pontuação e com números por extenso. Hotwords, beam search e `blank_penalty` não melhoraram o resultado.
+- A recomendação anterior a favor do Nemotron veio de um erro de método: janelas fixas de 20 s, que prejudicavam o Whisper.
+
+**Decisão:** o Whisper continua como o único revisor opcional (ADR-006), com os ajustes de comparação feitos durante o spike: número por extenso igual a dígito, repetição imediata ignorada, pontuação e maiúscula do Parakeet mantidas ao aplicar, e frase inteira que só o Parakeet ouviu sem virar sugestão de apagar. O Nemotron não entra nem como experimental, e o código do spike não ficou no repositório.
+
+O ganho em português veio pelo outro lado: a troca do Parakeet multilíngue pelo ajuste pt-BR ([ADR-009](adr/009-parakeet-ptbr.md)).
+

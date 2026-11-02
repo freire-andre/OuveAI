@@ -2771,7 +2771,7 @@ dependencies = [
 
 [[package]]
 name = "ouveai"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "log",
  "ouveai-audio",
@@ -2791,7 +2791,7 @@ dependencies = [
 
 [[package]]
 name = "ouveai-audio"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "log",
  "serde",
@@ -2801,7 +2801,7 @@ dependencies = [
 
 [[package]]
 name = "ouveai-cli"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "ouveai-audio",
  "ouveai-core",
@@ -2811,7 +2811,7 @@ dependencies = [
 
 [[package]]
 name = "ouveai-core"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "bzip2 0.6.1",
  "log",

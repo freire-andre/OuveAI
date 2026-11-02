@@ -47,6 +47,7 @@ pub fn list(app: &AppHandle) -> Vec<ModelView> {
     let errors = m.errors.lock().unwrap();
     models::catalog()
         .into_iter()
+        .filter(|spec| !spec.legacy || models::presence(spec) != Presence::Absent || jobs.contains_key(&spec.id))
         .map(|spec| {
             let job = jobs.get(&spec.id);
             let partial = models::partial_bytes(&spec);
@@ -71,7 +72,8 @@ pub fn list(app: &AppHandle) -> Vec<ModelView> {
                 partial,
                 error: errors.get(&spec.id).cloned(),
                 browser_url: spec.archive.as_ref().map(|a| a.url.clone()),
-                has_mirror: spec.mirror_base.is_some(),
+                // Sem pacote, o download principal já é o espelho: não repete o botão.
+                has_mirror: spec.archive.is_some() && spec.mirror_base.is_some(),
                 size: spec.files_size(),
                 embedded: spec.embedded,
                 id: spec.id,

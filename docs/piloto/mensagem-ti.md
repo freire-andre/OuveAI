@@ -12,15 +12,15 @@ Quero fazer um piloto de ~2 semanas com ‹3–5› colegas usando o **OuveAI**,
 
 **O que é**
 - App desktop para Windows 10 2004+ (x64), feito com Tauri (Rust + WebView2).
-- Reconhecimento de fala offline com o modelo Parakeet (NVIDIA, CC-BY-4.0) via sherpa-onnx/ONNX Runtime, rodando na CPU.
+- Reconhecimento de fala offline com o modelo Parakeet (NVIDIA, CC-BY-4.0) na versão ajustada para português do Brasil, via sherpa-onnx/ONNX Runtime, rodando na CPU.
 - Código-fonte (público): https://github.com/freire-andre/OuveAI
 
 **Instalação**
 - Instalador NSIS **por usuário**, sem administrador, em `%LOCALAPPDATA%\OuveAI`.
 - Dados em `%LOCALAPPDATA%\br.com.ouveai`: banco SQLite, modelo (~640 MB), áudio opcional e logs. Nada vai para o perfil Roaming.
 - O instalador **não é assinado** digitalmente. Arquivo e hash desta versão:
-  - `OuveAI_0.9.1_x64-setup.exe` (9,3 MB): https://github.com/freire-andre/OuveAI/releases/tag/v0.9.1
-  - SHA-256: `d0d5936b2412bcd8e0f47925f90c2c640cadcca1e1908a17339a5c3fde1b0535`
+  - `OuveAI_0.9.2_x64-setup.exe` (9,4 MB): https://github.com/freire-andre/OuveAI/releases/tag/v0.9.2
+  - SHA-256: `e4c44a1efb7466731a01815d5696247cd0842264d2c3ace5be25b063bac2203d`
 
 **Comportamentos que o EDR pode sinalizar (todos esperados)**
 
@@ -39,7 +39,7 @@ Ele **não** se inicia com o Windows, **não** instala serviço nem driver e **n
 | Destino | Quando |
 |---|---|
 | `github.com`, `objects.githubusercontent.com`, `release-assets.githubusercontent.com` | Download do modelo (uma vez, confirmado pelo usuário) e do FFmpeg (opcional, só para importar arquivos de vídeo) |
-| `huggingface.co` e CDN | Alternativa para o download do modelo |
+| `huggingface.co` e a CDN dele (`*.cdn.hf.co`) | Alternativa para o download do modelo |
 | `api.github.com` | "Verificar atualização", **só quando o usuário clica** |
 | `go.microsoft.com` / Microsoft Edge Update | Instalar o WebView2, só se a máquina não tiver |
 

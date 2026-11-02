@@ -55,6 +55,113 @@ fn key(w: &str) -> String {
     }
 }
 
+/// Valor de um número por extenso ("três" → 3, "cem" → 100). `normalize` já tirou acento.
+fn number_word(n: &str) -> Option<u64> {
+    Some(match n {
+        "zero" => 0,
+        "um" | "uma" => 1,
+        "dois" | "duas" => 2,
+        "tres" => 3,
+        "quatro" => 4,
+        "cinco" => 5,
+        "seis" => 6,
+        "sete" => 7,
+        "oito" => 8,
+        "nove" => 9,
+        "dez" => 10,
+        "onze" => 11,
+        "doze" => 12,
+        "treze" => 13,
+        "quatorze" | "catorze" => 14,
+        "quinze" => 15,
+        "dezesseis" => 16,
+        "dezessete" => 17,
+        "dezoito" => 18,
+        "dezenove" => 19,
+        "vinte" => 20,
+        "trinta" => 30,
+        "quarenta" => 40,
+        "cinquenta" => 50,
+        "sessenta" => 60,
+        "setenta" => 70,
+        "oitenta" => 80,
+        "noventa" => 90,
+        "cem" | "cento" => 100,
+        "duzentos" | "duzentas" => 200,
+        "trezentos" | "trezentas" => 300,
+        "quatrocentos" | "quatrocentas" => 400,
+        "quinhentos" | "quinhentas" => 500,
+        "seiscentos" | "seiscentas" => 600,
+        "setecentos" | "setecentas" => 700,
+        "oitocentos" | "oitocentas" => 800,
+        "novecentos" | "novecentas" => 900,
+        "mil" => 1000,
+        _ => return None,
+    })
+}
+
+/// Chaves de alinhamento de uma lista de palavras: `(chave, primeira, última)` em índices
+/// da lista original.
+/// - Palavra que vira vazio (só pontuação) fica de fora.
+/// - Número por extenso vira dígitos, inclusive com "e" ("setenta e duas" → "72"), para
+///   "72" e "setenta e duas" contarem como iguais (ADR-008 §5.3).
+/// - Repetição imediata da mesma palavra fica de fora ("de de de" → "de"): um modelo
+///   transcreve a hesitação e o outro não, e isso não é erro de nenhum dos dois.
+fn keys<S: AsRef<str>>(words: &[S]) -> Vec<(String, usize, usize)> {
+    let ks: Vec<String> = words.iter().map(|w| key(w.as_ref())).collect();
+    let mut out: Vec<(String, usize, usize)> = Vec::new();
+    let mut i = 0;
+    while i < ks.len() {
+        if ks[i].is_empty() {
+            i += 1;
+            continue;
+        }
+        let (k, last) = match number_word(&ks[i]) {
+            Some(first) => {
+                // "vinte e dois", "cento e vinte", "dois mil e quinhentos": junta enquanto a
+                // parte seguinte é menor que a anterior (regra do português).
+                let (mut total, mut part, mut last) = if first == 1000 { (1000u64, 0u64, i) } else { (0u64, first, i) };
+                let mut prev = first;
+                let mut j = i + 1;
+                loop {
+                    if j < ks.len() && ks[j] == "mil" && prev != 1000 {
+                        total += part.max(1) * 1000;
+                        part = 0;
+                        prev = 1000;
+                        last = j;
+                        j += 1;
+                        continue;
+                    }
+                    let next = if j + 1 < ks.len() && ks[j] == "e" {
+                        number_word(&ks[j + 1]).map(|v| (v, j + 1))
+                    } else if prev == 1000 && j < ks.len() {
+                        // Depois de "mil", o número segue sem "e": "mil novecentos", "dois mil trezentos".
+                        number_word(&ks[j]).map(|v| (v, j))
+                    } else {
+                        None
+                    };
+                    match next {
+                        Some((v, at)) if v < prev && v != 1000 => {
+                            part += v;
+                            prev = v;
+                            last = at;
+                            j = at + 1;
+                        }
+                        _ => break,
+                    }
+                }
+                ((total + part).to_string(), last)
+            }
+            None => (ks[i].clone(), i),
+        };
+        if out.last().is_none_or(|p| p.0 != k) {
+            out.push((k, i, last));
+        }
+        i = last + 1;
+    }
+    out
+}
+
 /// Muletas que o Whisper costuma omitir. Um trecho cuja diferença é só de muletas não
 /// é mostrado: o texto do Parakeet já é a fala literal.
 const FILLERS: &[&str] = &["ne", "po", "cara", "ali", "tal", "e", "a", "o", "entao", "assim", "tipo", "ai", "dai", "ah", "eh", "hum", "uh", "hm", "mano", "porra"];
@@ -62,6 +169,13 @@ const FILLERS: &[&str] = &["ne", "po", "cara", "ali", "tal", "e", "a", "o", "ent
 fn only_fillers_differ(p: &[&str], w: &[&str]) -> bool {
     let kept = |v: &[&str]| v.iter().filter(|x| !FILLERS.contains(x)).map(|x| x.to_string()).collect::<Vec<_>>();
     kept(p) == kept(w)
+}
+
+/// O trecho é uma frase inteira (termina em ".", "?" ou "!")? Quando só o Parakeet a
+/// ouviu, quase sempre é uma segunda voz falando por cima: os revisores ficam com a voz
+/// principal e omitem a outra. Sugerir apagar essa frase apagaria fala real.
+fn whole_sentence(ws: &[Word]) -> bool {
+    ws.last().is_some_and(|w| w.word.trim_end().ends_with(['.', '?', '!']))
 }
 
 /// Separa o texto do Whisper em palavras.
@@ -73,9 +187,9 @@ pub fn split_words(text: &str) -> Vec<String> {
 /// só (mais fácil de ler). Uma palavra que só o Whisper ouviu leva junto a palavra
 /// vizinha do Parakeet, para o trecho ter tempo.
 pub fn diverge(parakeet: &[Word], whisper: &[String]) -> Vec<Divergence> {
-    // Palavras que viram vazio (só pontuação) não entram no alinhamento.
-    let p: Vec<(String, usize)> = parakeet.iter().enumerate().map(|(i, w)| (key(&w.word), i)).filter(|(n, _)| !n.is_empty()).collect();
-    let w: Vec<(String, usize)> = whisper.iter().enumerate().map(|(i, w)| (key(w), i)).filter(|(n, _)| !n.is_empty()).collect();
+    let pw: Vec<&str> = parakeet.iter().map(|w| w.word.as_str()).collect();
+    let p = keys(&pw);
+    let w = keys(whisper);
     if p.is_empty() {
         return Vec::new();
     }
@@ -104,6 +218,7 @@ pub fn diverge(parakeet: &[Word], whisper: &[String]) -> Vec<Divergence> {
     hunks
         .into_iter()
         .filter(|(a, b)| !only_fillers_differ(&pk[a.clone()], &wk[b.clone()]))
+        .filter(|(a, b)| !b.is_empty() || !whole_sentence(&parakeet[p[a.start].1..=p[a.end - 1].2]))
         .map(|(mut a, mut b)| {
             if a.is_empty() {
                 // Só o Whisper tem palavras aqui: leva a vizinha (igual nos dois).
@@ -117,11 +232,11 @@ pub fn diverge(parakeet: &[Word], whisper: &[String]) -> Vec<Divergence> {
             }
             // De volta aos índices originais (incluindo a pontuação solta do meio).
             let from = p[a.start].1;
-            let to = p[a.end - 1].1 + 1;
+            let to = p[a.end - 1].2 + 1;
             let wtext = if b.is_empty() {
                 String::new()
             } else {
-                whisper[w[b.start].1..=w[b.end - 1].1].join(" ")
+                whisper[w[b.start].1..=w[b.end - 1].2].join(" ")
             };
             Divergence {
                 from,
@@ -165,10 +280,38 @@ fn measured(old: &[Word], ws: &[String]) -> Vec<Word> {
     if ws.is_empty() || old.is_empty() {
         return Vec::new();
     }
+    let ws = &keep_marks(old, ws);
     if ws.len() == old.len() {
         return old.iter().zip(ws).map(|(o, w)| Word { word: w.clone(), start: o.start, end: o.end }).collect();
     }
     vec![Word { word: ws.join(" "), start: old[0].start, end: old[old.len() - 1].end }]
+}
+
+/// O revisor pode não pontuar (o Nemotron com `pt-BR` não pontua). Ao trocar o texto,
+/// mantém a pontuação final e a maiúscula inicial das palavras do Parakeet que saem,
+/// quando o texto escolhido não tem as suas. Só mexe no texto, nunca nos tempos.
+fn keep_marks(old: &[Word], ws: &[String]) -> Vec<String> {
+    let mut ws = ws.to_vec();
+    let trailing = |s: &str| -> String {
+        let core = s.trim_end_matches(|c: char| !c.is_alphanumeric());
+        s[core.len()..].to_string()
+    };
+    let (first_old, last_old) = (&old[0].word, &old[old.len() - 1].word);
+    let tail = trailing(last_old);
+    if let Some(last) = ws.last_mut()
+        && !tail.is_empty()
+        && trailing(last).is_empty()
+    {
+        last.push_str(&tail);
+    }
+    if let Some(first) = ws.first_mut() {
+        let starts_upper = first_old.chars().next().is_some_and(char::is_uppercase);
+        let mut cs = first.chars();
+        if starts_upper && let Some(c) = cs.next().filter(|c| c.is_lowercase()) {
+            *first = c.to_uppercase().chain(cs).collect();
+        }
+    }
+    ws
 }
 
 // ---------- execução do Whisper ----------
@@ -394,9 +537,52 @@ mod tests {
 
     #[test]
     fn palavra_que_o_whisper_nao_ouviu() {
-        let d = diverge(&ws("isso isso aqui"), &wh("isso aqui"));
+        let d = diverge(&ws("isso mesmo aqui"), &wh("isso aqui"));
         assert_eq!(d.len(), 1);
         assert_eq!(d[0].whisper, "");
+    }
+
+    #[test]
+    fn numero_por_extenso_e_digito_nao_divergem() {
+        assert!(diverge(&ws("faltam 4 semanas , 72 horas"), &wh("faltam quatro semanas setenta e duas horas")).is_empty());
+        assert!(diverge(&ws("são 9 páginas"), &wh("são nove páginas")).is_empty());
+        assert!(diverge(&ws("custou 2500 reais"), &wh("custou dois mil e quinhentos reais")).is_empty());
+        assert!(diverge(&ws("ano 1999"), &wh("ano mil novecentos e noventa e nove")).is_empty());
+        // Número diferente continua divergindo, com o trecho inteiro do revisor.
+        let d = diverge(&ws("são 72 horas"), &wh("são setenta e três horas"));
+        assert_eq!((d.len(), d[0].parakeet.as_str(), d[0].whisper.as_str()), (1, "72", "setenta e três"));
+    }
+
+    #[test]
+    fn frase_que_so_o_parakeet_ouviu_nao_vira_apagar() {
+        // Segunda voz por cima ("Não."): os revisores omitem, e apagar seria perder fala.
+        assert!(diverge(&ws("pode ser saudável . Não. Pela sua lógica"), &wh("pode ser saudável pela sua lógica")).is_empty());
+        assert!(diverge(&ws("o consumo . Eu não estou tentando moral. É mais"), &wh("o consumo é mais")).is_empty());
+        // Palavra solta a mais, sem fim de frase, continua aparecendo.
+        assert_eq!(diverge(&ws("isso mesmo aqui"), &wh("isso aqui")).len(), 1);
+    }
+
+    #[test]
+    fn repeticao_imediata_nao_diverge() {
+        assert!(diverge(&ws("investi um monte de empresa"), &wh("investi um monte de de de empresa")).is_empty());
+        assert!(diverge(&ws("isso isso aqui"), &wh("isso aqui")).is_empty());
+        // Repetição junto de uma troca de verdade: o trecho aparece.
+        assert_eq!(diverge(&ws("de vibe codada"), &wh("de de vibe cordada")).len(), 1);
+    }
+
+    #[test]
+    fn aplicar_mantem_pontuacao_e_maiuscula_do_parakeet() {
+        // Revisor sem pontuação (Nemotron com pt-BR).
+        let p = ws("comidinha para beber, além");
+        let out = apply(&p, &diverge(&p, &wh("comidinha para bebê além")));
+        assert_eq!(out[2].word, "bebê,");
+        let p = ws("o dia . Comer enlatado");
+        let out = apply(&p, &diverge(&p, &wh("o dia como enlatado")));
+        assert_eq!(out[3].word, "Como");
+        // Revisor com pontuação própria: fica a dele.
+        let p = ws("a reunion, hoje");
+        let out = apply(&p, &diverge(&p, &wh("a reunião; hoje")));
+        assert_eq!(out[1].word, "reunião;");
     }
 
     #[test]
@@ -488,7 +674,7 @@ mod tests {
         assert_eq!(out[1].word, "reunião");
 
         // Escolher "nada" do Whisper apaga a palavra.
-        let p = ws("isso isso aqui");
+        let p = ws("isso mesmo aqui");
         let out = apply(&p, &diverge(&p, &wh("isso aqui")));
         assert_eq!(out.len(), 2);
     }

@@ -80,6 +80,7 @@
 
   const credits: { name: string; license: string; note?: string }[] = [
     { name: "Parakeet TDT 0.6B v3 (NVIDIA)", license: "CC-BY-4.0", note: "modelo de reconhecimento de fala" },
+    { name: "Ajuste pt-BR do Parakeet (alexandreacff; conversão de joaorura)", license: "CC-BY-4.0", note: "treinado com o conjunto TAGARELA" },
     { name: "sherpa-onnx (k2-fsa)", license: "Apache-2.0" },
     { name: "ONNX Runtime (Microsoft)", license: "MIT" },
     { name: "Silero VAD", license: "MIT", note: "detecção de fala" },
@@ -271,7 +272,7 @@
       {/each}
     </ul>
     <p class="hint">
-      O modelo Parakeet é distribuído pela NVIDIA sob CC-BY-4.0 e convertido para ONNX pelo projeto sherpa-onnx. O FFmpeg não vem no instalador:
+      O modelo Parakeet é distribuído pela NVIDIA sob CC-BY-4.0. A versão pt-BR usada aqui foi ajustada por alexandreacff (Hugging Face) e convertida para o sherpa-onnx por joaorura, sob a mesma licença. O FFmpeg não vem no instalador:
       ele é baixado à parte, e a licença dele fica em <span class="mono">bin\FFMPEG-LICENSE.txt</span>.
     </p>
   </details>

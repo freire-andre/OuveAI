@@ -1,4 +1,4 @@
-//! Reconhecedores offline via `sherpa-onnx`: Parakeet TDT 0.6b v3 int8 (principal)
+//! Reconhecedores offline via `sherpa-onnx`: Parakeet TDT 0.6b v3 pt-BR int8 (principal)
 //! e Whisper large-v3-turbo int8 (Parte 4, comparação).
 //! Campos e nomes conferidos no crate 2.0.1 e no S1 (regra 5).
 
@@ -25,12 +25,13 @@ pub fn file_threads() -> i32 {
 impl Asr {
     /// Carrega o Parakeet da pasta de modelos. Leva ~3 s e ~700 MB de RAM.
     pub fn load(threads: i32) -> Result<Self, String> {
-        let spec = models::parakeet();
-        match models::presence(&spec) {
-            Presence::Ready => {}
-            Presence::Absent => return Err("o modelo de reconhecimento de fala não está instalado (veja Modelos)".into()),
-            Presence::Corrupt(d) => return Err(format!("o modelo de reconhecimento está incompleto ({d}); baixe ou importe de novo")),
-        }
+        let spec = match models::speech_model() {
+            Some(spec) => spec,
+            None => match models::presence(&models::parakeet()) {
+                Presence::Corrupt(d) => return Err(format!("o modelo de reconhecimento está incompleto ({d}); baixe ou importe de novo")),
+                _ => return Err("o modelo de reconhecimento de fala não está instalado (veja Modelos)".into()),
+            },
+        };
         let f = |name: &str| Some(spec.file(name).to_string_lossy().into_owned());
         let mut cfg = OfflineRecognizerConfig::default();
         cfg.model_config.transducer = OfflineTransducerModelConfig {

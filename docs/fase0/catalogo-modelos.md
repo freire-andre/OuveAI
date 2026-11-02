@@ -24,3 +24,18 @@ Hugging Face `csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8`, fixado no 
 - O cabeçalho `X-Linked-ETag` do HF traz o SHA-256 dos arquivos grandes, mas o catálogo continua com o hash fixado no app.
 - O `silero_vad.onnx` do HF (`csukuangfj/vad`, 1,8 MB) é **outra versão**, então não serve de espelho para o Silero. Como ele tem 643 KB, pode ir embutido no instalador (a decidir na Fase 2).
 - Dentro do exe, os arquivos soltos são melhores que o `.tar.bz2`: dispensam a extração e permitem retomar e verificar cada arquivo separado.
+
+## Parakeet pt-BR (0.9.2, ADR-009)
+
+A partir da 0.9.2, o modelo de fala é o ajuste pt-BR do Parakeet: o checkpoint `.nemo` de `alexandreacff/parakeet-tdt-v3-ptBR-30s` (commit `3f46ff2c51304da75f4e8754d4b3731ea70cfd9a`, CC-BY-4.0), convertido para o sherpa-onnx int8 pelo script oficial `export_onnx.py` por `joaorura/parakeet-tdt-0.6b-v3-ptBR-sherpa-onnx-int8`, fixado no commit `bf31b612b9ea9602c21b9faf0dec038ff2c9a3fc`, que é o espelho. O SHA-256 foi conferido no arquivo baixado e bate com o README do repositório.
+
+Fonte principal: cópia sem modificação no release do próprio projeto, https://github.com/freire-andre/OuveAI/releases/download/asr-models/parakeet-tdt-0.6b-v3-ptbr-int8.tar.bz2, com 486200022 bytes e SHA-256 `377dccca7fe980eff69108761dc42ab09cd90cf08ce325f6a6f4745f0502faea`. A raiz é `parakeet-tdt-0.6b-v3-ptbr-int8/`, com os 4 arquivos e um `README.txt` de créditos (CC-BY-4.0), que é ignorado na extração.
+
+| id | arquivo | bytes | SHA-256 |
+|---|---|---:|---|
+| `parakeet-tdt-0.6b-v3-ptbr-int8` | `encoder.int8.onnx` | 652282302 | `260aff7bf778b016b42385e186d88a57224bd6958001993dbb6070a9a75b6690` |
+| | `decoder.int8.onnx` | 11845274 | `6b77e877b1dc29ebead07c0f461a7385d1ac5f8eff5be6422fdddb390d4a9967` |
+| | `joiner.int8.onnx` | 6355277 | `eb365a33945103cb787aa849b344cbf2abc093b43211e3b969ff97be3fdfc0e4` |
+| | `tokens.txt` | 93939 | `d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d` (igual ao do multilíngue) |
+
+O `parakeet-tdt-0.6b-v3-int8` (multilíngue) continua no catálogo para quem atualizou da 0.9.1: é usado enquanto o pt-BR não estiver instalado e só aparece na tela Modelos se estiver no disco.

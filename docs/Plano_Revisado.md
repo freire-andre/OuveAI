@@ -563,7 +563,7 @@ Se não, parar e decidir com você.
 
 ### Fase 6: Distribuição e piloto · M (era a Fase 8, antecipada)
 
-> **Parte técnica feita em 01/11/2026** ([resultado](fase6/resultado.md), [ADR-005](adr/005-distribuicao-e-atualizacao.md)): instalador 0.9.0, Sobre com licenças, diagnóstico e verificação manual de atualização, guia rápido, mensagem ao TI e formulário. Falta o piloto em si, que depende do retorno do TI. O repositório virou público e a release v0.9.0 saiu em 01/11/2026. A **0.9.1** (02/11/2026) leva o ícone definitivo, as Fases 7 e 8 e o aviso de WebView2, e é a versão que vai para o TI e o piloto.
+> **Parte técnica feita em 01/11/2026** ([resultado](fase6/resultado.md), [ADR-005](adr/005-distribuicao-e-atualizacao.md)): instalador 0.9.0, Sobre com licenças, diagnóstico e verificação manual de atualização, guia rápido, mensagem ao TI e formulário. Falta o piloto em si, que depende do retorno do TI. O repositório virou público e a release v0.9.0 saiu em 01/11/2026. A **0.9.1** (02/11/2026) leva o ícone definitivo, as Fases 7 e 8 e o aviso de WebView2. A **0.9.2** (02/11/2026) troca o modelo de fala pelo ajuste pt-BR do Parakeet ([ADR-009](adr/009-parakeet-ptbr.md)), melhora a comparação com o Whisper e descarta o Nemotron ([ADR-008](ADR-008-substituicao-whisper-por-nemotron.md)); é a versão que vai para o TI e o piloto.
 
 **Instalador e app**
 - NSIS por usuário, com a estratégia do ADR-003.
@@ -744,6 +744,8 @@ settings(key TEXT PRIMARY KEY, value TEXT)   -- valor em JSON
 | 005 | Eco: detecção de fone, correlação, marcação | 4 |
 | 006 | Distribuição: instalador, WebView2, assinatura, atualizações | 6 |
 | 007 | Forma da Parte 4 (Whisper) | 7 |
+| 008 | Nemotron como revisor no lugar do Whisper (**rejeitado**) | 7 |
+| 009 | Parakeet ajustado para pt-BR como modelo de fala (0.9.2) | 0.9.2 |
 
 ---
 

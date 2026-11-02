@@ -17,7 +17,7 @@
     return () => offs.forEach((p) => p.then((f) => f()));
   });
 
-  const parakeet = $derived(models.find((m) => m.id === "parakeet-tdt-0.6b-v3-int8"));
+  const parakeet = $derived(models.find((m) => m.id === "parakeet-tdt-0.6b-v3-ptbr-int8"));
   const labels = { mini: "Mostrar/ocultar a mini", record: "Gravar / parar", mark: "Marcar momento" } as const;
 
   interface Check {

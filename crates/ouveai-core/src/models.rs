@@ -38,6 +38,8 @@ pub struct ModelSpec {
     pub mirror_base: Option<String>,
     /// Vem dentro do exe (não precisa de rede).
     pub embedded: bool,
+    /// Modelo de uma versão anterior: só aparece na tela Modelos se estiver instalado.
+    pub legacy: bool,
     /// Para que serve, quando é opcional (mostrado na tela Modelos).
     pub note: Option<String>,
 }
@@ -60,13 +62,47 @@ fn f(name: &str, size: u64, sha256: &str) -> FileSpec {
     FileSpec { name: name.into(), size, sha256: sha256.into() }
 }
 
-pub const PARAKEET_ID: &str = "parakeet-tdt-0.6b-v3-int8";
+pub const PARAKEET_ID: &str = "parakeet-tdt-0.6b-v3-ptbr-int8";
+pub const PARAKEET_BASE_ID: &str = "parakeet-tdt-0.6b-v3-int8";
 pub const SILERO_ID: &str = "silero-vad";
 
+/// Parakeet TDT 0.6b v3 ajustado para pt-BR (fine-tune `alexandreacff/parakeet-tdt-v3-ptBR-30s`,
+/// convertido para o sherpa-onnx int8 pelo script oficial). Mesmo formato e mesmo `tokens.txt`
+/// do multilíngue; não deriva para o inglês. Escolha e medições: ADR-009.
 pub fn parakeet() -> ModelSpec {
     ModelSpec {
         id: PARAKEET_ID.into(),
-        name: "Parakeet TDT 0.6B v3 (int8)".into(),
+        name: "Parakeet TDT 0.6B v3 pt-BR (int8)".into(),
+        license: "CC-BY-4.0 (NVIDIA; ajuste pt-BR de alexandreacff; conversão de joaorura)".into(),
+        files: vec![
+            f("encoder.int8.onnx", 652282302, "260aff7bf778b016b42385e186d88a57224bd6958001993dbb6070a9a75b6690"),
+            f("decoder.int8.onnx", 11845274, "6b77e877b1dc29ebead07c0f461a7385d1ac5f8eff5be6422fdddb390d4a9967"),
+            f("joiner.int8.onnx", 6355277, "eb365a33945103cb787aa849b344cbf2abc093b43211e3b969ff97be3fdfc0e4"),
+            f("tokens.txt", 93939, "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d"),
+        ],
+        // Cópia sem modificação no release do próprio projeto (CC-BY-4.0, com README de créditos);
+        // o repositório de origem no Hugging Face fica como espelho.
+        archive: Some(ArchiveSpec {
+            url: "https://github.com/freire-andre/OuveAI/releases/download/asr-models/parakeet-tdt-0.6b-v3-ptbr-int8.tar.bz2".into(),
+            size: 486200022,
+            sha256: "377dccca7fe980eff69108761dc42ab09cd90cf08ce325f6a6f4745f0502faea".into(),
+            root: "parakeet-tdt-0.6b-v3-ptbr-int8".into(),
+        }),
+        mirror_base: Some(
+            "https://huggingface.co/joaorura/parakeet-tdt-0.6b-v3-ptBR-sherpa-onnx-int8/resolve/bf31b612b9ea9602c21b9faf0dec038ff2c9a3fc".into(),
+        ),
+        embedded: false,
+        legacy: false,
+        note: None,
+    }
+}
+
+/// O Parakeet multilíngue da 0.9.1. Fica no catálogo só para quem atualizou: é usado enquanto
+/// o pt-BR não estiver instalado, e a tela Modelos só o mostra se estiver no disco.
+pub fn parakeet_base() -> ModelSpec {
+    ModelSpec {
+        id: PARAKEET_BASE_ID.into(),
+        name: "Parakeet TDT 0.6B v3 multilíngue (int8)".into(),
         license: "CC-BY-4.0 (NVIDIA)".into(),
         files: vec![
             f("encoder.int8.onnx", 652184281, "acfc2b4456377e15d04f0243af540b7fe7c992f8d898d751cf134c3a55fd2247"),
@@ -84,8 +120,14 @@ pub fn parakeet() -> ModelSpec {
             "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/2bda32ec70b097a55adaa07d9a7173915b43cc78".into(),
         ),
         embedded: false,
-        note: None,
+        legacy: true,
+        note: Some("Versão anterior, multilíngue. Só é usada enquanto o modelo pt-BR não estiver instalado; depois de baixá-lo, pode apagar esta.".into()),
     }
+}
+
+/// O modelo de fala a usar: o pt-BR; sem ele, o multilíngue da versão anterior, se estiver instalado.
+pub fn speech_model() -> Option<ModelSpec> {
+    [parakeet(), parakeet_base()].into_iter().find(|m| presence(m) == Presence::Ready)
 }
 
 const SILERO_BYTES: &[u8] = include_bytes!("../assets/silero_vad.onnx");
@@ -99,6 +141,7 @@ pub fn silero() -> ModelSpec {
         archive: None,
         mirror_base: None,
         embedded: true,
+        legacy: false,
         note: None,
     }
 }
@@ -127,12 +170,13 @@ pub fn whisper() -> ModelSpec {
             "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-turbo/resolve/2ca6ff69fc878651b770880507669577ac41c2ff".into(),
         ),
         embedded: false,
+        legacy: false,
         note: Some("Opcional. Usado só em \"Comparar com o Whisper\", para conferir trechos difíceis da transcrição.".into()),
     }
 }
 
 pub fn catalog() -> Vec<ModelSpec> {
-    vec![parakeet(), silero(), whisper()]
+    vec![parakeet(), parakeet_base(), silero(), whisper()]
 }
 
 pub fn by_id(id: &str) -> Option<ModelSpec> {
@@ -520,6 +564,7 @@ mod tests {
             archive: Some(ArchiveSpec { url: "https://x/fake.tar.bz2".into(), size: 0, sha256: String::new(), root: "fake-root".into() }),
             mirror_base: None,
             embedded: false,
+            legacy: false,
             note: None,
         }
     }

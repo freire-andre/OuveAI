@@ -348,7 +348,7 @@ pub fn start(app: &AppHandle) -> Result<(), String> {
         return Ok(());
     }
     stop_test(app);
-    if ouveai_core::models::presence(&ouveai_core::models::parakeet()) != ouveai_core::models::Presence::Ready {
+    if ouveai_core::models::speech_model().is_none() {
         windows::open_main(app, Some("models"));
         return Err("Baixe ou importe o modelo de reconhecimento antes de gravar.".into());
     }
