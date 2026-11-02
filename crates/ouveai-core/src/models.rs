@@ -148,8 +148,9 @@ pub fn silero() -> ModelSpec {
 
 pub const WHISPER_ID: &str = "whisper-large-v3-turbo-int8";
 
-/// Parte 4 (opcional): Whisper large-v3-turbo em int8. Pacote do release do sherpa-onnx
-/// (que também traz `test_wavs/`, ignorados na extração) e espelho fixado por commit.
+/// Parte 4 (opcional): Whisper large-v3-turbo em int8. Pacote do sherpa-onnx (que também traz
+/// `test_wavs/`, ignorados na extração), copiado sem modificação para o release do próprio
+/// projeto (ADR-010); o Hugging Face fixado por commit fica como espelho.
 pub fn whisper() -> ModelSpec {
     ModelSpec {
         id: WHISPER_ID.into(),
@@ -161,7 +162,7 @@ pub fn whisper() -> ModelSpec {
             f("turbo-tokens.txt", 816730, "b34b360dbb493e781e479794586d661700670d65564001f23024971d1f2fa126"),
         ],
         archive: Some(ArchiveSpec {
-            url: "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-turbo.tar.bz2".into(),
+            url: "https://github.com/freire-andre/OuveAI/releases/download/asr-models/sherpa-onnx-whisper-turbo.tar.bz2".into(),
             size: 563790207,
             sha256: "b11acbbcd660b44a8e0df33724feb5aaa709cf65668f2823d59f656312544f22".into(),
             root: "sherpa-onnx-whisper-turbo".into(),

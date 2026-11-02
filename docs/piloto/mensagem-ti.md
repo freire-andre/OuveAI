@@ -19,8 +19,8 @@ Quero fazer um piloto de ~2 semanas com ‹3–5› colegas usando o **OuveAI**,
 - Instalador NSIS **por usuário**, sem administrador, em `%LOCALAPPDATA%\OuveAI`.
 - Dados em `%LOCALAPPDATA%\br.com.ouveai`: banco SQLite, modelo (~640 MB), áudio opcional e logs. Nada vai para o perfil Roaming.
 - O instalador **não é assinado** digitalmente. Arquivo e hash desta versão:
-  - `OuveAI_0.9.3_x64-setup.exe` (9,4 MB): https://github.com/freire-andre/OuveAI/releases/tag/v0.9.3
-  - SHA-256: `19b5a1a3c0ccd6950af98ca057229de7a8ed6c849635804f1eece68933223cab`
+  - `OuveAI_0.9.4_x64-setup.exe` (9,3 MB): https://github.com/freire-andre/OuveAI/releases/tag/v0.9.4
+  - SHA-256: `463f98a4ee0a157c2d68db7791e904a7e9dc49675fa1964625bf6da64c76cba1`
 
 **Comportamentos que o EDR pode sinalizar (todos esperados)**
 
@@ -38,8 +38,8 @@ Ele **não** se inicia com o Windows, **não** instala serviço nem driver e **n
 
 | Destino | Quando |
 |---|---|
-| `github.com`, `objects.githubusercontent.com`, `release-assets.githubusercontent.com` | Download do modelo (uma vez, confirmado pelo usuário) e do FFmpeg (opcional, só para importar arquivos de vídeo) |
-| `huggingface.co` e a CDN dele (`*.cdn.hf.co`) | Alternativa para o download do modelo |
+| `github.com`, `objects.githubusercontent.com`, `release-assets.githubusercontent.com` | Download do modelo (uma vez, confirmado pelo usuário) e, se o usuário quiser, do Whisper e do FFmpeg. Desde a 0.9.4, tudo vem dos releases do próprio projeto (`github.com/freire-andre/OuveAI`); o release de origem fica como reserva |
+| `huggingface.co` e a CDN dele (`*.cdn.hf.co`) | Alternativa para o download dos modelos |
 | `api.github.com` | "Verificar atualização", quando o usuário clica. Se ele ligar o aviso de versão nova (desligado por padrão), também ao abrir o app, **no máximo uma vez por dia** |
 | `go.microsoft.com` / Microsoft Edge Update | Instalar o WebView2, só se a máquina não tiver |
 

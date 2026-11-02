@@ -39,3 +39,14 @@ Fonte principal: cópia sem modificação no release do próprio projeto, https:
 | | `tokens.txt` | 93939 | `d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d` (igual ao do multilíngue) |
 
 O `parakeet-tdt-0.6b-v3-int8` (multilíngue) continua no catálogo para quem atualizou da 0.9.1: é usado enquanto o pt-BR não estiver instalado e só aparece na tela Modelos se estiver no disco.
+
+## Whisper e FFmpeg no release do próprio projeto (0.9.4, ADR-010)
+
+Cópias sem modificação (mesmo SHA-256 da origem, conferido em 02/11/2026). A fonte própria é a principal, e a origem fica como reserva.
+
+| componente | fonte principal | reserva | bytes | SHA-256 |
+|---|---|---|---:|---|
+| `whisper-large-v3-turbo-int8` | https://github.com/freire-andre/OuveAI/releases/download/asr-models/sherpa-onnx-whisper-turbo.tar.bz2 | Hugging Face `csukuangfj/sherpa-onnx-whisper-turbo@2ca6ff69fc878651b770880507669577ac41c2ff` (arquivos soltos, "Usar o espelho") | 563790207 | `b11acbbcd660b44a8e0df33724feb5aaa709cf65668f2823d59f656312544f22` |
+| FFmpeg 9.0.2 essentials (gyan.dev) | https://github.com/freire-andre/OuveAI/releases/download/ffmpeg-9.0.2/ffmpeg-9.0.2-essentials_build.zip | https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip (automática) | 114768076 | `60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba` |
+
+O release `ffmpeg-9.0.2` também traz o código-fonte (`ffmpeg-9.0.2.tar.xz` do ffmpeg.org, SHA-256 `8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e`), como a GPL-3.0 exige.

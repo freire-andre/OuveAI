@@ -55,7 +55,7 @@ pub fn status(app: &AppHandle) -> FfmpegView {
             version: PACKAGE.version,
             size: PACKAGE.size,
             license: PACKAGE.license,
-            source: "github.com/GyanD/codexffmpeg (gyan.dev)",
+            source: "github.com/freire-andre/OuveAI (build da gyan.dev)",
         },
     }
 }

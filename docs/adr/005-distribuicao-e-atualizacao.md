@@ -31,4 +31,4 @@
    - mais os logs.
 
    Sem texto, áudio, títulos ou nomes de arquivo (regra 8). O zip é gravado num `.part` e renomeado, então uma falha não deixa um arquivo pela metade.
-5. **Versão do piloto: 0.9.0.** A 1.0.0 sai quando o piloto cumprir os critérios de saída. Em 02/11/2026 saiu a 0.9.1, ainda antes do piloto, com o ícone definitivo, as Partes 4 e 5 e o aviso de WebView2 em português. No mesmo dia, a 0.9.2 trocou o modelo de fala pelo ajuste pt-BR do Parakeet (ADR-009) e melhorou a comparação com o Whisper. A 0.9.3 trouxe o aviso opcional de versão nova; o uso da placa de vídeo foi medido e descartado (S10).
+5. **Versão do piloto: 0.9.0.** A 1.0.0 sai quando o piloto cumprir os critérios de saída. Em 02/11/2026 saiu a 0.9.1, ainda antes do piloto, com o ícone definitivo, as Partes 4 e 5 e o aviso de WebView2 em português. No mesmo dia, a 0.9.2 trocou o modelo de fala pelo ajuste pt-BR do Parakeet (ADR-009) e melhorou a comparação com o Whisper. A 0.9.3 trouxe o aviso opcional de versão nova; o uso da placa de vídeo foi medido e descartado (S10). A 0.9.4 passou a baixar todos os componentes dos releases do próprio projeto (ADR-010).

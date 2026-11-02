@@ -8,7 +8,7 @@
 1. **Modelo: Whisper large-v3-turbo int8**, do catálogo do sherpa-onnx, rodando pelo próprio sherpa-onnx, sem Python.
    - **Por que não o large-v3:** são ~3 GB contra ~1 GB, e ele é bem mais lento na CPU. A comparação já custa cerca de metade da duração do áudio com o turbo.
    - **Opcional:** não entra no assistente de primeiro uso. Ele aparece em Modelos com a nota "Opcional", e o painel de comparação oferece o download quando falta.
-   - **Fontes:** pacote do GitHub (k2-fsa) com o espelho do Hugging Face fixado por commit, os dois com SHA-256 conferido, como o Parakeet.
+   - **Fontes:** pacote do GitHub (k2-fsa) com o espelho do Hugging Face fixado por commit, os dois com SHA-256 conferido, como o Parakeet. Desde a 0.9.4, o pacote vem de uma cópia sem modificação no release `asr-models` do próprio projeto (ADR-010).
 2. **Alinhamento: crate `similar`** (Myers), sobre palavras normalizadas: minúsculas, sem acento e sem pontuação.
    - **Formas coloquiais contam como iguais:** tá/está, tava/estava, tô/estou, pra/para, cê/você.
    - **Diferença só de muletas não é mostrada:** né, pô, cara, ali, tal, então, assim, tipo e parecidas. O Whisper costuma omiti-las, e o Parakeet, que transcreve a fala literal, já está certo.

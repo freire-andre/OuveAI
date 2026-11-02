@@ -63,11 +63,15 @@ pub fn find() -> Option<Ffmpeg> {
     })
 }
 
-/// Build estática da gyan.dev, release fixa no GitHub (o mesmo fornecedor do `winget install Gyan.FFmpeg`).
-/// Licença GPL; o texto vai junto para `bin\FFMPEG-LICENSE.txt`.
+/// Build estática da gyan.dev (o mesmo fornecedor do `winget install Gyan.FFmpeg`). O pacote é
+/// copiado sem modificação para um release do próprio projeto, com o código-fonte (GPL); o
+/// release da gyan.dev fica como reserva (ADR-010). O texto da licença vai para `bin\FFMPEG-LICENSE.txt`.
 pub struct Package {
     pub version: &'static str,
+    /// Fonte principal (release do OuveAI).
     pub url: &'static str,
+    /// Reserva: mesmo arquivo (mesmo SHA-256) no release de origem.
+    pub mirror_url: &'static str,
     pub size: u64,
     pub sha256: &'static str,
     pub license: &'static str,
@@ -75,7 +79,8 @@ pub struct Package {
 
 pub const PACKAGE: Package = Package {
     version: "9.0.2",
-    url: "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip",
+    url: "https://github.com/freire-andre/OuveAI/releases/download/ffmpeg-9.0.2/ffmpeg-9.0.2-essentials_build.zip",
+    mirror_url: "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip",
     size: 114_768_076,
     sha256: "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba",
     license: "GPL-3.0",
@@ -96,16 +101,11 @@ pub fn download(cfg: &NetConfig, cancel: &AtomicBool, on: &mut dyn FnMut(Step)) 
     let part = zip_part();
     // Pacote + o exe extraído (~ do mesmo tamanho).
     models::check_space((p.size - partial_bytes().min(p.size)) + p.size)?;
-    net::download(cfg, p.url, &part, p.size, cancel, &mut |pr: Progress| {
-        on(Step::Downloading { done: pr.done, total: pr.total, bytes_per_sec: pr.bytes_per_sec, retry: pr.retry })
-    })?;
-    let verified = models::verify_one(&part, p.size, p.sha256, &mut |d| on(Step::Verifying { done: d, total: p.size }));
-    // Completo (bom ou adulterado): o ETag não serve mais para retomar.
-    fs::remove_file(part.with_extension("part.etag")).ok();
-    if verified.is_err() {
-        fs::remove_file(&part).ok();
-    }
-    verified?;
+    fetch_verified(&[p.url, p.mirror_url], &part, p.size, p.sha256, &mut |url, on| {
+        net::download(cfg, url, &part, p.size, cancel, &mut |pr: Progress| {
+            on(Step::Downloading { done: pr.done, total: pr.total, bytes_per_sec: pr.bytes_per_sec, retry: pr.retry })
+        })
+    }, on)?;
     let r = install_zip(&part, cancel, on);
     if !matches!(r, Err(InstallError::Cancelled)) {
         fs::remove_file(&part).ok();
@@ -117,6 +117,48 @@ pub fn download(cfg: &NetConfig, cancel: &AtomicBool, on: &mut dyn FnMut(Step)) 
     let path = local_path();
     let version = probe(&path).ok_or_else(|| InstallError::Invalid("o ffmpeg.exe baixado não executou".into()))?;
     Ok(Ffmpeg { path, version, origin: Origin::Local })
+}
+
+/// Baixa uma URL para o `.part`, avisando o progresso.
+type Fetch<'a> = dyn FnMut(&str, &mut dyn FnMut(Step)) -> Result<(), net::NetError> + 'a;
+
+/// Baixa `part` da primeira fonte que der certo e confere o SHA-256. Se uma fonte falhar (fora do ar,
+/// erro de rede depois das novas tentativas ou arquivo diferente), passa para a próxima. O `.part` de uma
+/// fonte pode ser retomado pela outra: o arquivo é o mesmo, e se o servidor não aceitar o Range o
+/// download recomeça do zero.
+fn fetch_verified(
+    urls: &[&str],
+    part: &Path,
+    size: u64,
+    sha256: &str,
+    fetch: &mut Fetch,
+    on: &mut dyn FnMut(Step),
+) -> Result<(), InstallError> {
+    let mut last = None;
+    for (i, url) in urls.iter().enumerate() {
+        if i > 0 {
+            log::warn!("ffmpeg: fonte principal falhou ({}); tentando a reserva", last.as_ref().map(|e: &InstallError| e.to_string()).unwrap_or_default());
+        }
+        if let Err(e) = fetch(url, on) {
+            let e = InstallError::from(e);
+            if matches!(e, InstallError::Cancelled) {
+                return Err(e);
+            }
+            last = Some(e);
+            continue;
+        }
+        let verified = models::verify_one(part, size, sha256, &mut |d| on(Step::Verifying { done: d, total: size }));
+        // Completo (bom ou adulterado): o ETag não serve mais para retomar.
+        fs::remove_file(part.with_extension("part.etag")).ok();
+        match verified {
+            Ok(()) => return Ok(()),
+            Err(e) => {
+                fs::remove_file(part).ok();
+                last = Some(e);
+            }
+        }
+    }
+    Err(last.unwrap_or_else(|| InstallError::Invalid("sem fonte de download".into())))
 }
 
 /// Extrai `*/bin/ffmpeg.exe` e `*/LICENSE` do zip; troca o exe de forma atômica.
@@ -465,6 +507,58 @@ mod tests {
         assert_eq!(fs::read_to_string(paths::bin_dir().join("FFMPEG-LICENSE.txt")).unwrap(), "GPL");
         assert!(!paths::bin_dir().join("ffprobe.exe").exists());
         unsafe { std::env::remove_var("OUVEAI_DATA_DIR") };
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn usa_a_reserva_quando_a_fonte_principal_falha() {
+        let dir = std::env::temp_dir().join(format!("ouveai-media-fonte-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let part = dir.join("p.zip.part");
+        let body: &[u8] = b"pacote do ffmpeg";
+        fs::write(&part, body).unwrap();
+        let sha = crate::hash::sha256_file(&part, &mut |_| {}).unwrap();
+        let size = body.len() as u64;
+        // Cada fonte: Some(conteúdo) entrega o arquivo; None = 404; b"!" = pausado.
+        let run = |plan: &[(&str, Option<&[u8]>)]| {
+            fs::remove_file(&part).ok();
+            let urls: Vec<&str> = plan.iter().map(|(u, _)| *u).collect();
+            let mut tried = Vec::new();
+            let r = fetch_verified(
+                &urls,
+                &part,
+                size,
+                &sha,
+                &mut |url, _| {
+                    tried.push(url.to_string());
+                    match plan.iter().find(|(u, _)| *u == url).unwrap().1 {
+                        Some(b"!") => Err(net::NetError::Cancelled),
+                        Some(b) => {
+                            fs::write(&part, b).unwrap();
+                            Ok(())
+                        }
+                        None => Err(net::NetError::Status(404)),
+                    }
+                },
+                &mut |_| {},
+            );
+            (r, tried)
+        };
+        // Principal fora do ar → reserva.
+        let (r, t) = run(&[("a", None), ("b", Some(body))]);
+        assert!(r.is_ok() && t == ["a", "b"], "{r:?} {t:?}");
+        // Principal entrega arquivo diferente → descarta e usa a reserva.
+        let (r, t) = run(&[("a", Some(b"outro conteudo!!")), ("b", Some(body))]);
+        assert!(r.is_ok() && t == ["a", "b"], "{r:?} {t:?}");
+        // Principal funciona → nem consulta a reserva.
+        let (r, t) = run(&[("a", Some(body)), ("b", Some(body))]);
+        assert!(r.is_ok() && t == ["a"], "{r:?} {t:?}");
+        // Pausar não troca de fonte.
+        let (r, t) = run(&[("a", Some(b"!")), ("b", Some(body))]);
+        assert!(matches!(r, Err(InstallError::Cancelled)) && t == ["a"], "{r:?} {t:?}");
+        // As duas falham → erro da última.
+        let (r, _) = run(&[("a", None), ("b", None)]);
+        assert!(matches!(r, Err(InstallError::Net(_))), "{r:?}");
         fs::remove_dir_all(&dir).ok();
     }
 }

@@ -118,7 +118,7 @@ O áudio não sai do seu computador: sem nuvem, sem conta, sem telemetria.</p>
 
 <table>
   <tr><td>💻</td><td><b>Tudo roda na sua máquina.</b> O reconhecimento de fala usa um modelo local, ajustado para o português do Brasil. Nenhuma transcrição ou áudio é enviado para servidor nenhum.</td></tr>
-  <tr><td>🌐</td><td><b>A rede só é usada para baixar componentes</b> (o modelo de fala e, se você quiser, o FFmpeg e o Whisper), uma vez e com o SHA-256 conferido, <b>e para ver se há versão nova</b>: quando você clica em "Verificar atualização" ou, se ligar o aviso, no máximo uma vez por dia. Dá para baixar os componentes pelo navegador e importar o arquivo.</td></tr>
+  <tr><td>🌐</td><td><b>A rede só é usada para baixar componentes</b> (o modelo de fala e, se você quiser, o FFmpeg e o Whisper), uma vez, com o SHA-256 conferido e a partir dos releases do próprio projeto no GitHub (a origem de cada um fica como reserva), <b>e para ver se há versão nova</b>: quando você clica em "Verificar atualização" ou, se ligar o aviso, no máximo uma vez por dia. Dá para baixar os componentes pelo navegador e importar o arquivo.</td></tr>
   <tr><td>📝</td><td><b>Os logs não guardam o que foi dito</b>: nem texto transcrito, nem títulos de reunião, nem nomes de arquivo. Só tempos, contagens e nomes de dispositivo.</td></tr>
   <tr><td>📂</td><td><b>Os dados ficam em <code>%LOCALAPPDATA%</code></b>, fora do perfil móvel da empresa. Apagar uma sessão apaga o texto e o áudio.</td></tr>
 </table>
@@ -248,7 +248,7 @@ As decisões técnicas estão em [`docs/adr/`](docs/adr) e o plano completo em [
 | 3 | Transcrição de arquivo, legenda `.srt` e editor | ✅ |
 | 4 | Captura ao vivo, mini janela e sessões | ✅ |
 | 5 | Histórico, busca sem acento, copiar em Markdown, exportar | ✅ |
-| 6 | Instalador final, tela de licenças, diagnóstico, piloto | 🧪 piloto (0.9.3) |
+| 6 | Instalador final, tela de licenças, diagnóstico, piloto | 🧪 piloto (0.9.4) |
 | 7 | Comparação com Whisper (opcional) | ✅ |
 | 8 | Legenda de vídeo editado (EDL) | ✅ |
 
@@ -265,7 +265,7 @@ O OuveAI usa estes projetos abertos:
 - [Silero VAD](https://github.com/snakers4/silero-vad): detecção de voz, MIT
 - [Whisper large-v3 turbo](https://github.com/openai/whisper) (OpenAI), opcional, usado só na comparação: MIT
 - [Tauri](https://tauri.app), [Svelte](https://svelte.dev) e o crate [`wasapi`](https://github.com/HEnquist/wasapi-rs)
-- [FFmpeg](https://ffmpeg.org) (baixado à parte, build da gyan.dev, GPL-3.0), usado só para importar arquivos
+- [FFmpeg](https://ffmpeg.org) (baixado à parte, build da gyan.dev, GPL-3.0), usado só para importar arquivos. A cópia e o código-fonte ficam no release [`ffmpeg-9.0.2`](https://github.com/freire-andre/OuveAI/releases/tag/ffmpeg-9.0.2)
 
 ---
 
